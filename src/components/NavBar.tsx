@@ -1,13 +1,16 @@
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X, LogIn } from "lucide-react";
+import { Menu, X, LogIn, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const NavBar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +19,29 @@ const NavBar: React.FC = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Check auth status when component mounts
+    const checkAuthStatus = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsLoggedIn(!!data.session);
+    };
+    
+    checkAuthStatus();
+    
+    // Subscribe to auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        setIsLoggedIn(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+      }
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -46,12 +72,22 @@ const NavBar: React.FC = () => {
               {item}
             </a>
           ))}
-          <Link to="/auth">
-            <Button variant="outline" className="flex items-center gap-2">
-              <LogIn className="h-4 w-4" />
-              <span>Login</span>
-            </Button>
-          </Link>
+          
+          {isLoggedIn ? (
+            <Link to="/dashboard">
+              <Button variant="outline" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span>Dashboard</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/auth">
+              <Button variant="outline" className="flex items-center gap-2">
+                <LogIn className="h-4 w-4" />
+                <span>Login</span>
+              </Button>
+            </Link>
+          )}
         </nav>
 
         {/* Mobile Menu Button */}
@@ -86,14 +122,26 @@ const NavBar: React.FC = () => {
               {item}
             </a>
           ))}
-          <Link 
-            to="/auth" 
-            className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <LogIn className="h-4 w-4" />
-            <span>Login</span>
-          </Link>
+          
+          {isLoggedIn ? (
+            <Link 
+              to="/dashboard" 
+              className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <User className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+          ) : (
+            <Link 
+              to="/auth" 
+              className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <LogIn className="h-4 w-4" />
+              <span>Login</span>
+            </Link>
+          )}
         </nav>
       </div>
     </header>
