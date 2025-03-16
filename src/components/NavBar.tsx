@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const NavBar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -35,7 +36,7 @@ const NavBar: React.FC = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex space-x-8">
+        <nav className="hidden md:flex items-center space-x-8">
           {["Features", "Gallery", "About", "Contact"].map((item) => (
             <a
               key={item}
@@ -45,6 +46,12 @@ const NavBar: React.FC = () => {
               {item}
             </a>
           ))}
+          <Link to="/auth">
+            <Button variant="outline" className="flex items-center gap-2">
+              <LogIn className="h-4 w-4" />
+              <span>Login</span>
+            </Button>
+          </Link>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -65,7 +72,7 @@ const NavBar: React.FC = () => {
       <div
         className={cn(
           "absolute top-full left-0 right-0 glass-effect shadow-md md:hidden transition-all duration-300 ease-in-out overflow-hidden",
-          mobileMenuOpen ? "max-h-64 py-4" : "max-h-0 py-0"
+          mobileMenuOpen ? "max-h-80 py-4" : "max-h-0 py-0"
         )}
       >
         <nav className="flex flex-col space-y-4 px-6">
@@ -79,6 +86,14 @@ const NavBar: React.FC = () => {
               {item}
             </a>
           ))}
+          <Link 
+            to="/auth" 
+            className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <LogIn className="h-4 w-4" />
+            <span>Login</span>
+          </Link>
         </nav>
       </div>
     </header>
