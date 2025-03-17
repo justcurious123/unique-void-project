@@ -2,12 +2,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Settings, Send, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = {
   id: string;
@@ -16,28 +17,8 @@ type Message = {
   timestamp: Date;
 };
 
-// Mock AI responses for financial questions
-const generateFinancialAdvice = async (question: string): Promise<string> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Simple pattern matching for financial questions
-  if (question.toLowerCase().includes("invest")) {
-    return "Consider diversifying your investments across different asset classes like stocks, bonds, and ETFs. Start small, be consistent, and think long-term for compounding returns.";
-  } else if (question.toLowerCase().includes("budget") || question.toLowerCase().includes("spending")) {
-    return "Track your expenses for at least 30 days to understand your spending patterns. Aim to follow the 50/30/20 rule: 50% for needs, 30% for wants, and 20% for savings and debt repayment.";
-  } else if (question.toLowerCase().includes("debt") || question.toLowerCase().includes("loan")) {
-    return "Prioritize high-interest debt first. Consider the avalanche method (highest interest first) or the snowball method (smallest balance first) based on what motivates you more.";
-  } else if (question.toLowerCase().includes("save") || question.toLowerCase().includes("saving")) {
-    return "Build an emergency fund covering 3-6 months of expenses first. Then, automate your savings by setting up transfers on payday. Even small, consistent amounts add up significantly over time.";
-  } else if (question.toLowerCase().includes("retire") || question.toLowerCase().includes("retirement")) {
-    return "Start retirement planning early. Maximize employer matches in retirement accounts, and gradually increase your contributions by 1-2% annually. Time is your greatest asset for retirement success.";
-  } else {
-    return "Consider starting with a clear financial goal. Whether it's building an emergency fund, investing, or reducing debt, having specific objectives helps create actionable plans for financial success.";
-  }
-};
-
 const FinancialChat: React.FC = () => {
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -76,19 +57,38 @@ const FinancialChat: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Get AI response
-      const response = await generateFinancialAdvice(userMessage.text);
-      
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke("financial-advice", {
+        body: { 
+          message: userMessage.text,
+          conciseMode: conciseResponses
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || "Failed to get response");
+      }
+
+      // Create AI message from response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response,
+        text: data.text,
         sender: "ai",
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      // Handle error
+      console.error("Error getting financial advice:", error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive",
+      });
+      
+      // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: "Sorry, I couldn't process your request. Please try again.",
