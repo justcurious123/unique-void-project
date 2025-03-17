@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Home, MessageSquare, User } from "lucide-react";
+import FinancialChat from "@/components/FinancialChat";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -90,8 +91,7 @@ const Dashboard: React.FC = () => {
           
           <TabsContent value="chat" className="space-y-6">
             <div className="bg-white/10 p-6 rounded-lg">
-              <h2 className="text-xl font-semibold mb-4">Chat</h2>
-              <p>The chat functionality is coming soon.</p>
+              <FinancialChat />
             </div>
           </TabsContent>
           
