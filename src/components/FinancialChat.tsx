@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ const FinancialChat: React.FC = () => {
         
         if (error) throw error;
         
-        setThreads(data || []);
+        setThreads(data as ChatThread[] || []);
         
         // If there are threads, set the active thread to the most recent one
         // Otherwise, create a new thread
@@ -230,7 +231,7 @@ const FinancialChat: React.FC = () => {
       
       if (error) throw error;
       
-      setThreads(data || []);
+      setThreads(data as ChatThread[] || []);
     } catch (error) {
       console.error("Error loading chat threads:", error);
       toast({

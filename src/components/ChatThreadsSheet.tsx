@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define our own types instead of relying on the generated types
 export type ChatThread = {
   id: string;
   title: string;
