@@ -36,6 +36,9 @@ serve(async (req) => {
     } else {
       systemPrompt += ` You can be more detailed in your explanations, providing context and educational information.`;
     }
+    
+    // Add instruction to format response using markdown
+    systemPrompt += ` Format your responses using markdown for better readability. Use **bold** for important points, *italics* for emphasis, bullet points for lists, and ### for section headers when appropriate.`;
 
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
