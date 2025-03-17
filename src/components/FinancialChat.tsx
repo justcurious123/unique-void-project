@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ChatThreadsSheet, { ChatThread } from "./ChatThreadsSheet";
-import ReactMarkdown from 'react-markdown';
 
 type Message = {
   id: string;
@@ -34,6 +34,7 @@ const FinancialChat: React.FC = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -45,6 +46,7 @@ const FinancialChat: React.FC = () => {
     getCurrentUser();
   }, []);
 
+  // Load chat threads
   useEffect(() => {
     if (!userId) return;
     
@@ -61,6 +63,8 @@ const FinancialChat: React.FC = () => {
         
         setThreads(data as ChatThread[] || []);
         
+        // If there are threads, set the active thread to the most recent one
+        // Otherwise, create a new thread
         if (data && data.length > 0) {
           setActiveThreadId(data[0].id);
         } else {
@@ -81,6 +85,7 @@ const FinancialChat: React.FC = () => {
     loadChatThreads();
   }, [userId, toast]);
 
+  // Load messages for active thread
   useEffect(() => {
     if (!activeThreadId) return;
     
@@ -96,6 +101,7 @@ const FinancialChat: React.FC = () => {
         
         if (error) throw error;
         
+        // Convert Supabase messages to our Message format
         const formattedMessages = data.map((msg) => ({
           id: msg.id,
           text: msg.content,
@@ -103,6 +109,7 @@ const FinancialChat: React.FC = () => {
           timestamp: new Date(msg.created_at),
         }));
         
+        // If it's a new thread, add a welcome message
         if (formattedMessages.length === 0 && isNewThread) {
           const welcomeMessage: Message = {
             id: "welcome",
@@ -113,6 +120,7 @@ const FinancialChat: React.FC = () => {
           
           setMessages([welcomeMessage]);
           
+          // Save the welcome message to the database
           await supabase
             .from('chat_messages')
             .insert({
@@ -140,6 +148,7 @@ const FinancialChat: React.FC = () => {
     loadMessages();
   }, [activeThreadId, isNewThread, toast]);
 
+  // Subscribe to new messages
   useEffect(() => {
     if (!activeThreadId) return;
     
@@ -151,6 +160,7 @@ const FinancialChat: React.FC = () => {
         table: 'chat_messages',
         filter: `thread_id=eq.${activeThreadId}`,
       }, (payload) => {
+        // Only add the message if it's not already in the messages array
         const existingMessage = messages.find(msg => msg.id === payload.new.id);
         if (!existingMessage) {
           const newMessage: Message = {
@@ -170,14 +180,17 @@ const FinancialChat: React.FC = () => {
     };
   }, [activeThreadId, messages]);
 
+  // Scroll to bottom of chat when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Create a new thread
   const createNewThread = async () => {
     if (!userId) return;
     
     try {
+      // Create a default title
       const defaultTitle = `Financial Chat ${new Date().toLocaleDateString()}`;
       
       const { data, error } = await supabase
@@ -194,6 +207,7 @@ const FinancialChat: React.FC = () => {
       setActiveThreadId(data.id);
       setIsNewThread(true);
       
+      // Update threads list
       loadThreads();
     } catch (error) {
       console.error("Error creating new thread:", error);
@@ -205,6 +219,7 @@ const FinancialChat: React.FC = () => {
     }
   };
 
+  // Load threads
   const loadThreads = async () => {
     if (!userId) return;
     
@@ -227,7 +242,9 @@ const FinancialChat: React.FC = () => {
     }
   };
 
+  // Update thread title based on first message
   const updateThreadTitle = async (threadId: string, message: string) => {
+    // Extract first few words for the title
     const words = message.split(' ');
     const title = words.slice(0, 5).join(' ') + (words.length > 5 ? '...' : '');
     
@@ -242,6 +259,7 @@ const FinancialChat: React.FC = () => {
       
       if (error) throw error;
       
+      // Update threads list
       loadThreads();
     } catch (error) {
       console.error("Error updating thread title:", error);
@@ -253,6 +271,7 @@ const FinancialChat: React.FC = () => {
     
     if (!inputValue.trim() || !activeThreadId) return;
     
+    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       text: inputValue,
@@ -265,6 +284,7 @@ const FinancialChat: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Save user message to database
       const { data: msgData, error: msgError } = await supabase
         .from('chat_messages')
         .insert({
@@ -277,16 +297,19 @@ const FinancialChat: React.FC = () => {
       
       if (msgError) throw msgError;
       
+      // Update thread title if it's the first user message
       const isFirstMessage = messages.filter(m => m.sender === "user").length === 0;
       if (isFirstMessage) {
         await updateThreadTitle(activeThreadId, userMessage.text);
       }
       
+      // Update thread timestamp
       await supabase
         .from('chat_threads')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', activeThreadId);
       
+      // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("financial-advice", {
         body: { 
           message: userMessage.text,
@@ -298,6 +321,7 @@ const FinancialChat: React.FC = () => {
         throw new Error(error.message || "Failed to get response");
       }
 
+      // Create AI message from response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: data.text,
@@ -305,6 +329,7 @@ const FinancialChat: React.FC = () => {
         timestamp: new Date(),
       };
       
+      // Save AI message to database
       await supabase
         .from('chat_messages')
         .insert({
@@ -312,15 +337,19 @@ const FinancialChat: React.FC = () => {
           content: aiMessage.text,
           sender: "ai",
         });
+      
+      // Note: We don't need to update messages state here, since we're subscribing to realtime updates
     } catch (error) {
       console.error("Error getting financial advice:", error);
       
+      // Show error toast
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
       
+      // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: "Sorry, I couldn't process your request. Please try again.",
@@ -330,6 +359,7 @@ const FinancialChat: React.FC = () => {
       
       setMessages(prev => [...prev, errorMessage]);
       
+      // Save error message to database
       await supabase
         .from('chat_messages')
         .insert({
@@ -353,20 +383,6 @@ const FinancialChat: React.FC = () => {
     "How much should I save for an emergency fund?",
     "What are the first steps to creating a budget?",
   ];
-
-  const renderMessageContent = (text: string, sender: string) => {
-    if (sender === "user") {
-      return <p>{text}</p>;
-    } else {
-      return (
-        <ReactMarkdown 
-          className="prose prose-sm dark:prose-invert max-w-none"
-        >
-          {text}
-        </ReactMarkdown>
-      );
-    }
-  };
 
   return (
     <div className="flex flex-col h-[70vh]">
@@ -453,7 +469,7 @@ const FinancialChat: React.FC = () => {
                     : "bg-white/10"
                 }`}
               >
-                {renderMessageContent(message.text, message.sender)}
+                <p>{message.text}</p>
                 <p className="text-xs mt-1 opacity-70">
                   {message.timestamp.toLocaleTimeString([], { 
                     hour: '2-digit', 
