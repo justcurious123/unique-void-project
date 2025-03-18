@@ -18,6 +18,7 @@ export interface NewTask {
   title: string;
   description: string;
   article_content: string;
+  goal_id?: string; // Make goal_id optional in the interface but ensure it's set
 }
 
 export const useTasks = (goalId: string) => {
@@ -64,12 +65,25 @@ export const useTasks = (goalId: string) => {
 
   const createTask = async (newTask: NewTask) => {
     try {
+      // Ensure we have a goal_id - either from the parameter or from the current context
+      const effectiveGoalId = newTask.goal_id || goalId;
+      
+      if (!effectiveGoalId) {
+        console.error('No goal ID provided for task creation');
+        toast.error('Cannot create task: No goal specified');
+        return null;
+      }
+      
+      console.log(`Creating task for goal ID: ${effectiveGoalId}`);
+      
       const { data, error } = await supabase
         .from('tasks')
         .insert([
           { 
-            ...newTask,
-            goal_id: goalId,
+            title: newTask.title,
+            description: newTask.description,
+            article_content: newTask.article_content,
+            goal_id: effectiveGoalId,
             order_number: tasks.length,
             completed: false
           }
@@ -79,12 +93,14 @@ export const useTasks = (goalId: string) => {
       if (error) throw error;
       
       if (data) {
+        console.log('Task created successfully:', data[0]);
         setTasks([...tasks, ...data]);
         toast.success("Task added to goal successfully!");
         return data[0];  // Return the created task
       }
       return null;
     } catch (error: any) {
+      console.error('Error creating task:', error.message);
       toast.error(`Error creating task: ${error.message}`);
       return null;
     }

@@ -74,6 +74,10 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
 
+    if (!goal_id) {
+      throw new Error('Goal ID is required')
+    }
+
     // Generate tasks
     console.log('Generating tasks for goal:', title, 'with ID:', goal_id)
     const tasksResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -136,7 +140,7 @@ serve(async (req) => {
     }))
 
     return new Response(
-      JSON.stringify({ tasks, quizzes }),
+      JSON.stringify({ tasks, quizzes, goal_id }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

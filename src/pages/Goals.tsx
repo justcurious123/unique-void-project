@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flag, Plus } from "lucide-react";
@@ -74,7 +75,15 @@ const GoalsPage: React.FC = () => {
         throw new Error(`Error generating content: ${response.error.message}`);
       }
 
-      const { data: { tasks: generatedTasks, quizzes } } = response;
+      const { data: { tasks: generatedTasks, quizzes, goal_id } } = response;
+      
+      // Verify the goal_id is correctly returned and matches the created goal
+      console.log("Created goal ID:", createdGoal.id);
+      console.log("Returned goal ID from function:", goal_id);
+      
+      if (!goal_id || goal_id !== createdGoal.id) {
+        console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
+      }
       
       const taskPromises = generatedTasks.map(async (task, i) => {
         const taskData = {
@@ -83,7 +92,11 @@ const GoalsPage: React.FC = () => {
           article_content: task.article_content
         };
         
-        const createdTask = await createTask(taskData);
+        // Explicitly pass the goal ID when creating tasks
+        const createdTask = await createTask({
+          ...taskData,
+          goal_id: createdGoal.id
+        });
         
         if (createdTask && createdTask.id) {
           const quiz = quizzes.find(q => q.task_index === i);
@@ -107,6 +120,7 @@ const GoalsPage: React.FC = () => {
       
       await Promise.all(taskPromises);
       
+      // Refresh tasks to ensure UI is updated with the newly created tasks
       fetchTasks();
 
       setNewGoal({ title: "", description: "", target_date: "" });
