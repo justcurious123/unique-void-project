@@ -1,14 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Flag, Loader2 } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, ArrowRight, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
+import TaskQuiz from './TaskQuiz';
 
 interface GoalListProps {
   goals: Goal[];
@@ -31,6 +32,8 @@ export const GoalList: React.FC<GoalListProps> = ({
   isTasksLoading,
   onUpdateTaskStatus
 }) => {
+  const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
+
   if (goals.length === 0) {
     return (
       <Card className="mb-8 border-dashed">
@@ -105,6 +108,13 @@ export const GoalList: React.FC<GoalListProps> = ({
                   <div className="py-4 text-center text-muted-foreground">
                     No tasks created for this goal yet.
                   </div>
+                ) : activeQuizTaskId ? (
+                  <div className="mt-4">
+                    <TaskQuiz 
+                      taskId={activeQuizTaskId} 
+                      onClose={() => setActiveQuizTaskId(null)} 
+                    />
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <h3 className="font-medium">Tasks</h3>
@@ -120,7 +130,7 @@ export const GoalList: React.FC<GoalListProps> = ({
                               }
                             }}
                           />
-                          <div className="space-y-1">
+                          <div className="flex-1 space-y-1">
                             <label 
                               htmlFor={`task-${task.id}`}
                               className={cn(
@@ -134,6 +144,15 @@ export const GoalList: React.FC<GoalListProps> = ({
                               <p className="text-sm text-muted-foreground">{task.description}</p>
                             )}
                           </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="flex items-center gap-1"
+                            onClick={() => setActiveQuizTaskId(task.id)}
+                          >
+                            <BookOpen className="h-3.5 w-3.5" />
+                            <span>Quiz</span>
+                          </Button>
                         </div>
                       ))}
                     </div>

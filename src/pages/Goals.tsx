@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Flag, Plus } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Flag, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -136,10 +136,17 @@ const GoalsPage: React.FC = () => {
   return (
     <div className="container mx-auto py-20 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Flag className="h-8 w-8" />
-          Financial Goals
-        </h1>
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard">
+            <Button variant="outline" size="icon" className="h-9 w-9">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Flag className="h-8 w-8" />
+            Financial Goals
+          </h1>
+        </div>
         
         <Dialog open={openGoalDialog} onOpenChange={setOpenGoalDialog}>
           <DialogTrigger asChild>
