@@ -7,10 +7,11 @@ export interface Task {
   id: string;
   goal_id: string;
   title: string;
-  description: string;
+  description: string | null;
   order_number: number;
   completed: boolean;
-  article_content: string;
+  article_content: string | null;
+  created_at: string;
 }
 
 export interface NewTask {

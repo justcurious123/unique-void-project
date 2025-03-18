@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,16 +23,23 @@ export const useQuizzes = () => {
         .from('quizzes')
         .select('*')
         .eq('task_id', taskId)
-        .single();
+        .maybeSingle();
         
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
         throw error;
       }
       
-      return data as Quiz;
+      if (!data) return null;
+      
+      // Parse the JSON questions into our QuizQuestion type
+      const quiz: Quiz = {
+        id: data.id,
+        task_id: data.task_id,
+        title: data.title,
+        questions: data.questions as QuizQuestion[]
+      };
+      
+      return quiz;
     } catch (error: any) {
       toast.error(`Error fetching quiz: ${error.message}`);
       return null;

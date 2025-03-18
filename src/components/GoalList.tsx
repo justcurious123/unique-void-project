@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 

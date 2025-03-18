@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flag, Plus, ListChecks, Book, Award } from "lucide-react";
@@ -8,8 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useGoals } from "@/hooks/useGoals";
-import { useTasks } from "@/hooks/useTasks";
+import { useGoals, type Goal } from "@/hooks/useGoals";
+import { useTasks, type Task } from "@/hooks/useTasks";
 import { useQuizzes } from "@/hooks/useQuizzes";
 import { GoalList } from "@/components/GoalList";
 
