@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -22,7 +21,6 @@ const NavBar: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Check auth status when component mounts
     const checkAuthStatus = async () => {
       const { data } = await supabase.auth.getSession();
       setIsLoggedIn(!!data.session);
@@ -30,7 +28,6 @@ const NavBar: React.FC = () => {
     
     checkAuthStatus();
     
-    // Subscribe to auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
         setIsLoggedIn(true);
@@ -61,7 +58,6 @@ const NavBar: React.FC = () => {
           Essence
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
           {["Features", "Gallery", "About", "Contact"].map((item) => (
             <a
@@ -98,7 +94,6 @@ const NavBar: React.FC = () => {
           )}
         </nav>
 
-        {/* Mobile Menu Button */}
         <button
           className="md:hidden focus:outline-none"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -112,7 +107,6 @@ const NavBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       <div
         className={cn(
           "absolute top-full left-0 right-0 glass-effect shadow-md md:hidden transition-all duration-300 ease-in-out overflow-hidden",

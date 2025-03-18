@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Home, MessageSquare, User } from "lucide-react";
+import { Home, MessageSquare, User, Flag } from "lucide-react";
 import FinancialChat from "@/components/FinancialChat";
 
 const Dashboard: React.FC = () => {
@@ -85,6 +85,15 @@ const Dashboard: React.FC = () => {
                   <h3 className="font-medium mb-2">Recent Activity</h3>
                   <p>Your recent activities will be displayed here.</p>
                 </div>
+              </div>
+              
+              <div className="mt-6">
+                <Link to="/goals">
+                  <Button className="flex items-center gap-2">
+                    <Flag className="h-4 w-4" />
+                    <span>View Your Financial Goals</span>
+                  </Button>
+                </Link>
               </div>
             </div>
           </TabsContent>
