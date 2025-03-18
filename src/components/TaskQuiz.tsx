@@ -21,27 +21,42 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getQuiz = async () => {
       setLoading(true);
+      setError(null);
       try {
         const quizData = await fetchQuiz(taskId);
+        
+        if (!quizData) {
+          setQuiz(null);
+          return;
+        }
+        
         setQuiz(quizData);
         
         // Initialize selectedAnswers array with -1 for each question
-        if (quizData && quizData.questions) {
+        if (quizData.questions && Array.isArray(quizData.questions)) {
           setSelectedAnswers(Array(quizData.questions.length).fill(-1));
+        } else {
+          // Handle case where questions is not an array
+          setError("Invalid quiz data format");
+          setQuiz(null);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching quiz:", error);
-        toast.error("Failed to load quiz");
+        setError(error.message || "Failed to load quiz");
+        toast.error(`Error fetching quiz: ${error.message || "Unknown error"}`);
       } finally {
         setLoading(false);
       }
     };
 
-    getQuiz();
+    if (taskId) {
+      getQuiz();
+    }
   }, [taskId, fetchQuiz]);
 
   const handleSelectAnswer = (optionIndex: number) => {
@@ -52,6 +67,7 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
 
   const handleNextQuestion = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event propagation
     
     if (selectedAnswers[currentQuestionIndex] === -1) {
       toast.error("Please select an answer before continuing");
@@ -77,6 +93,7 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
 
   const resetQuiz = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setSelectedAnswers(Array(quiz?.questions.length || 0).fill(-1));
     setCurrentQuestionIndex(0);
     setQuizCompleted(false);
@@ -84,6 +101,7 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
 
   const handleClose = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     onClose();
   };
 
@@ -97,7 +115,21 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
     );
   }
 
-  if (!quiz) {
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Quiz Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">{error}</p>
+          <Button onClick={handleClose} className="mt-4">Close</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return (
       <Card className="w-full">
         <CardHeader>
