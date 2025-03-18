@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X, LogIn, User } from "lucide-react";
+import { Menu, X, LogIn, User, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,12 +74,20 @@ const NavBar: React.FC = () => {
           ))}
           
           {isLoggedIn ? (
-            <Link to="/dashboard">
-              <Button variant="outline" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>Dashboard</span>
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link to="/goals">
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <Flag className="h-4 w-4" />
+                  <span>Goals</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Dashboard</span>
+                </Button>
+              </Link>
+            </div>
           ) : (
             <Link to="/auth">
               <Button variant="outline" className="flex items-center gap-2">
@@ -108,7 +116,7 @@ const NavBar: React.FC = () => {
       <div
         className={cn(
           "absolute top-full left-0 right-0 glass-effect shadow-md md:hidden transition-all duration-300 ease-in-out overflow-hidden",
-          mobileMenuOpen ? "max-h-80 py-4" : "max-h-0 py-0"
+          mobileMenuOpen ? "max-h-96 py-4" : "max-h-0 py-0"
         )}
       >
         <nav className="flex flex-col space-y-4 px-6">
@@ -124,14 +132,24 @@ const NavBar: React.FC = () => {
           ))}
           
           {isLoggedIn ? (
-            <Link 
-              to="/dashboard" 
-              className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <User className="h-4 w-4" />
-              <span>Dashboard</span>
-            </Link>
+            <>
+              <Link 
+                to="/goals" 
+                className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Flag className="h-4 w-4" />
+                <span>Goals</span>
+              </Link>
+              <Link 
+                to="/dashboard" 
+                className="text-sm font-medium py-2 flex items-center gap-2 text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User className="h-4 w-4" />
+                <span>Dashboard</span>
+              </Link>
+            </>
           ) : (
             <Link 
               to="/auth" 
