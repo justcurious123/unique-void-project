@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ export interface NewTask {
 
 export const useTasks = (goalId: string) => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchTasks = async () => {
     try {
@@ -30,6 +32,9 @@ export const useTasks = (goalId: string) => {
         return;
       }
 
+      setIsLoading(true);
+      console.log(`Fetching tasks for goal ID: ${goalId}`);
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -37,11 +42,25 @@ export const useTasks = (goalId: string) => {
         .order('order_number', { ascending: true });
         
       if (error) throw error;
+      
+      console.log(`Found ${data?.length || 0} tasks for goal ID: ${goalId}`);
       setTasks(data || []);
     } catch (error: any) {
+      console.error('Error fetching tasks:', error.message);
       toast.error(`Error fetching tasks: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // Fetch tasks whenever goalId changes
+  useEffect(() => {
+    if (goalId) {
+      fetchTasks();
+    } else {
+      setTasks([]);
+    }
+  }, [goalId]);
 
   const createTask = async (newTask: NewTask) => {
     try {
@@ -92,6 +111,7 @@ export const useTasks = (goalId: string) => {
 
   return {
     tasks,
+    isLoading,
     fetchTasks,
     createTask,
     updateTaskStatus

@@ -20,7 +20,7 @@ const GoalsPage: React.FC = () => {
   
   // Custom hooks
   const { goals, createGoal, deleteGoal } = useGoals();
-  const { tasks, fetchTasks, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
+  const { tasks, isLoading: isTasksLoading, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
 
   // Check authentication status
   useEffect(() => {
@@ -42,14 +42,13 @@ const GoalsPage: React.FC = () => {
       setExpandedGoalId(null);
     } else {
       setExpandedGoalId(goalId);
-      if (goalId) {
-        await fetchTasks();
-      }
     }
   };
 
   // Calculate goal progress
   const calculateGoalProgress = (goalId: string) => {
+    if (!expandedGoalId || expandedGoalId !== goalId) return 0;
+    
     const goalTasks = tasks.filter(task => task.goal_id === goalId);
     if (goalTasks.length === 0) return 0;
     
@@ -91,14 +90,14 @@ const GoalsPage: React.FC = () => {
           article_content: task.article_content
         });
 
-        if (taskSuccess && task.id) {
+        if (taskSuccess && taskSuccess.id) {
           // Create quiz for this task
           const quiz = quizzes.find(q => q.task_index === i);
           if (quiz) {
             const { error: quizError } = await supabase
               .from('quizzes')
               .insert([{
-                task_id: task.id,
+                task_id: taskSuccess.id,
                 title: quiz.title,
                 questions: quiz.questions
               }]);
@@ -194,6 +193,9 @@ const GoalsPage: React.FC = () => {
         onExpandGoal={toggleGoalExpand}
         onDeleteGoal={deleteGoal}
         calculateProgress={calculateGoalProgress}
+        tasks={tasks}
+        isTasksLoading={isTasksLoading}
+        onUpdateTaskStatus={updateTaskStatus}
       />
     </div>
   );

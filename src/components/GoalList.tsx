@@ -3,11 +3,12 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Flag } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface GoalListProps {
   goals: Goal[];
@@ -15,6 +16,9 @@ interface GoalListProps {
   onExpandGoal: (goalId: string) => void;
   onDeleteGoal: (goalId: string) => void;
   calculateProgress: (goalId: string) => number;
+  tasks: Task[];
+  isTasksLoading: boolean;
+  onUpdateTaskStatus: (taskId: string, completed: boolean) => Promise<boolean>;
 }
 
 export const GoalList: React.FC<GoalListProps> = ({
@@ -22,7 +26,10 @@ export const GoalList: React.FC<GoalListProps> = ({
   expandedGoalId,
   onExpandGoal,
   onDeleteGoal,
-  calculateProgress
+  calculateProgress,
+  tasks,
+  isTasksLoading,
+  onUpdateTaskStatus
 }) => {
   if (goals.length === 0) {
     return (
@@ -90,7 +97,48 @@ export const GoalList: React.FC<GoalListProps> = ({
 
             <CollapsibleContent>
               <CardContent className="pt-0">
-                {/* Tasks will be rendered here by the parent component */}
+                {isTasksLoading ? (
+                  <div className="py-6 flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <div className="py-4 text-center text-muted-foreground">
+                    No tasks created for this goal yet.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Tasks</h3>
+                    <div className="space-y-2">
+                      {tasks.map((task) => (
+                        <div key={task.id} className="flex items-start gap-3 p-3 rounded-md border">
+                          <Checkbox 
+                            id={`task-${task.id}`} 
+                            checked={task.completed}
+                            onCheckedChange={(checked) => {
+                              if (typeof checked === 'boolean') {
+                                onUpdateTaskStatus(task.id, checked);
+                              }
+                            }}
+                          />
+                          <div className="space-y-1">
+                            <label 
+                              htmlFor={`task-${task.id}`}
+                              className={cn(
+                                "font-medium cursor-pointer",
+                                task.completed && "line-through text-muted-foreground"
+                              )}
+                            >
+                              {task.title}
+                            </label>
+                            {task.description && (
+                              <p className="text-sm text-muted-foreground">{task.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </CollapsibleContent>
           </Card>
