@@ -67,7 +67,7 @@ serve(async (req) => {
   }
 
   try {
-    const { title, description } = await req.json()
+    const { title, description, goal_id } = await req.json()
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
 
     if (!openAIApiKey) {
@@ -75,7 +75,7 @@ serve(async (req) => {
     }
 
     // Generate tasks
-    console.log('Generating tasks for goal:', title)
+    console.log('Generating tasks for goal:', title, 'with ID:', goal_id)
     const tasksResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

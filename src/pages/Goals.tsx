@@ -20,7 +20,7 @@ const GoalsPage: React.FC = () => {
   
   // Custom hooks
   const { goals, createGoal, deleteGoal } = useGoals();
-  const { tasks, isLoading: isTasksLoading, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
+  const { tasks, isLoading: isTasksLoading, fetchTasks, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
 
   // Check authentication status
   useEffect(() => {
@@ -62,16 +62,20 @@ const GoalsPage: React.FC = () => {
       setIsCreating(true);
       
       // Create the goal first
-      const success = await createGoal(newGoal);
-      if (!success) {
+      const createdGoal = await createGoal(newGoal);
+      if (!createdGoal) {
         throw new Error("Failed to create goal");
       }
 
+      // Set the newly created goal as expanded
+      setExpandedGoalId(createdGoal.id);
+      
       // Generate tasks and quizzes using the edge function
       const response = await supabase.functions.invoke('generate-goal-content', {
         body: {
           title: newGoal.title,
-          description: newGoal.description
+          description: newGoal.description,
+          goal_id: createdGoal.id
         }
       });
 
@@ -80,24 +84,25 @@ const GoalsPage: React.FC = () => {
       }
 
       const { data: { tasks: generatedTasks, quizzes } } = response;
-
+      
       // Create tasks and associated quizzes
-      for (let i = 0; i < generatedTasks.length; i++) {
-        const task = generatedTasks[i];
-        const taskSuccess = await createTask({
+      const taskPromises = generatedTasks.map(async (task, i) => {
+        const taskData = {
           title: task.title,
           description: task.description,
           article_content: task.article_content
-        });
-
-        if (taskSuccess && taskSuccess.id) {
+        };
+        
+        const createdTask = await createTask(taskData);
+        
+        if (createdTask && createdTask.id) {
           // Create quiz for this task
           const quiz = quizzes.find(q => q.task_index === i);
           if (quiz) {
             const { error: quizError } = await supabase
               .from('quizzes')
               .insert([{
-                task_id: taskSuccess.id,
+                task_id: createdTask.id,
                 title: quiz.title,
                 questions: quiz.questions
               }]);
@@ -106,8 +111,15 @@ const GoalsPage: React.FC = () => {
               console.error('Error creating quiz:', quizError);
             }
           }
+          return createdTask;
         }
-      }
+        return null;
+      });
+      
+      await Promise.all(taskPromises);
+      
+      // Refresh tasks to ensure UI is updated
+      fetchTasks();
 
       setNewGoal({ title: "", description: "", target_date: "" });
       setOpenGoalDialog(false);
