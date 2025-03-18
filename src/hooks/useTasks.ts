@@ -25,6 +25,12 @@ export const useTasks = (goalId: string) => {
 
   const fetchTasks = async () => {
     try {
+      // Only fetch tasks if we have a valid goalId
+      if (!goalId) {
+        console.log('No goal ID provided, skipping task fetch');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')

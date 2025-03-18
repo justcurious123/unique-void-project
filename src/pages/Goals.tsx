@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flag, Plus, ListChecks, Book, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,12 +46,14 @@ const GoalsPage: React.FC = () => {
   }, [navigate]);
 
   // Handle goal expansion/collapse
-  const toggleGoalExpand = (goalId: string) => {
+  const toggleGoalExpand = async (goalId: string) => {
     if (expandedGoalId === goalId) {
       setExpandedGoalId(null);
     } else {
       setExpandedGoalId(goalId);
-      fetchTasks();
+      if (goalId) {
+        await fetchTasks();
+      }
     }
   };
 
