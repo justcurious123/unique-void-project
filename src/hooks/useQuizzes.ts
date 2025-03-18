@@ -31,12 +31,20 @@ export const useQuizzes = () => {
       
       if (!data) return null;
       
-      // Parse the JSON questions into our QuizQuestion type
+      // Safely type and parse the JSON questions
+      const parsedQuestions = data.questions as any[];
+      const typedQuestions: QuizQuestion[] = parsedQuestions.map(q => ({
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correct_option: q.correct_option
+      }));
+      
       const quiz: Quiz = {
         id: data.id,
         task_id: data.task_id,
         title: data.title,
-        questions: data.questions as QuizQuestion[]
+        questions: typedQuestions
       };
       
       return quiz;
