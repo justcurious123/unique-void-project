@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flag, Plus } from "lucide-react";
@@ -18,11 +17,9 @@ const GoalsPage: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: "", description: "", target_date: "" });
   
-  // Custom hooks
   const { goals, createGoal, deleteGoal } = useGoals();
   const { tasks, isLoading: isTasksLoading, fetchTasks, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
 
-  // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
@@ -36,7 +33,6 @@ const GoalsPage: React.FC = () => {
     checkAuth();
   }, [navigate]);
 
-  // Handle goal expansion/collapse
   const toggleGoalExpand = async (goalId: string) => {
     if (expandedGoalId === goalId) {
       setExpandedGoalId(null);
@@ -45,7 +41,6 @@ const GoalsPage: React.FC = () => {
     }
   };
 
-  // Calculate goal progress
   const calculateGoalProgress = (goalId: string) => {
     if (!expandedGoalId || expandedGoalId !== goalId) return 0;
     
@@ -56,21 +51,17 @@ const GoalsPage: React.FC = () => {
     return Math.round((completedTasks / goalTasks.length) * 100);
   };
 
-  // Handle goal creation with AI-generated content
   const handleCreateGoal = async () => {
     try {
       setIsCreating(true);
       
-      // Create the goal first
       const createdGoal = await createGoal(newGoal);
       if (!createdGoal) {
         throw new Error("Failed to create goal");
       }
 
-      // Set the newly created goal as expanded
       setExpandedGoalId(createdGoal.id);
       
-      // Generate tasks and quizzes using the edge function
       const response = await supabase.functions.invoke('generate-goal-content', {
         body: {
           title: newGoal.title,
@@ -85,7 +76,6 @@ const GoalsPage: React.FC = () => {
 
       const { data: { tasks: generatedTasks, quizzes } } = response;
       
-      // Create tasks and associated quizzes
       const taskPromises = generatedTasks.map(async (task, i) => {
         const taskData = {
           title: task.title,
@@ -96,7 +86,6 @@ const GoalsPage: React.FC = () => {
         const createdTask = await createTask(taskData);
         
         if (createdTask && createdTask.id) {
-          // Create quiz for this task
           const quiz = quizzes.find(q => q.task_index === i);
           if (quiz) {
             const { error: quizError } = await supabase
@@ -118,7 +107,6 @@ const GoalsPage: React.FC = () => {
       
       await Promise.all(taskPromises);
       
-      // Refresh tasks to ensure UI is updated
       fetchTasks();
 
       setNewGoal({ title: "", description: "", target_date: "" });

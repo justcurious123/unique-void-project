@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,12 +45,12 @@ export const useGoals = () => {
     }
   };
 
-  const createGoal = async (newGoal: NewGoal) => {
+  const createGoal = async (newGoal: NewGoal): Promise<Goal | null> => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
         toast.error("Please log in to create goals");
-        return false;
+        return null;
       }
 
       const { data, error } = await supabase
@@ -67,14 +66,15 @@ export const useGoals = () => {
         
       if (error) throw error;
       
-      if (data) {
+      if (data && data.length > 0) {
         setGoals([...goals, ...data]);
         toast.success("Financial goal created successfully!");
+        return data[0] as Goal;
       }
-      return true;
+      return null;
     } catch (error: any) {
       toast.error(`Error creating goal: ${error.message}`);
-      return false;
+      return null;
     }
   };
 
