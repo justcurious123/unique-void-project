@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, ArrowRight, BookOpen } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
@@ -148,7 +148,12 @@ export const GoalList: React.FC<GoalListProps> = ({
                             variant="ghost" 
                             size="sm" 
                             className="flex items-center gap-1"
-                            onClick={() => setActiveQuizTaskId(task.id)}
+                            onClick={(e) => {
+                              e.preventDefault(); // Prevent any default behavior
+                              e.stopPropagation(); // Stop event propagation
+                              setActiveQuizTaskId(task.id);
+                            }}
+                            type="button" // Explicitly set button type
                           >
                             <BookOpen className="h-3.5 w-3.5" />
                             <span>Quiz</span>

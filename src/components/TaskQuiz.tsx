@@ -25,13 +25,19 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
   useEffect(() => {
     const getQuiz = async () => {
       setLoading(true);
-      const quizData = await fetchQuiz(taskId);
-      setQuiz(quizData);
-      setLoading(false);
-      
-      // Initialize selectedAnswers array with -1 for each question
-      if (quizData && quizData.questions) {
-        setSelectedAnswers(Array(quizData.questions.length).fill(-1));
+      try {
+        const quizData = await fetchQuiz(taskId);
+        setQuiz(quizData);
+        
+        // Initialize selectedAnswers array with -1 for each question
+        if (quizData && quizData.questions) {
+          setSelectedAnswers(Array(quizData.questions.length).fill(-1));
+        }
+      } catch (error) {
+        console.error("Error fetching quiz:", error);
+        toast.error("Failed to load quiz");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -44,7 +50,9 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
     setSelectedAnswers(newSelectedAnswers);
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    
     if (selectedAnswers[currentQuestionIndex] === -1) {
       toast.error("Please select an answer before continuing");
       return;
@@ -67,10 +75,16 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
     }
   };
 
-  const resetQuiz = () => {
+  const resetQuiz = (e: React.MouseEvent) => {
+    e.preventDefault();
     setSelectedAnswers(Array(quiz?.questions.length || 0).fill(-1));
     setCurrentQuestionIndex(0);
     setQuizCompleted(false);
+  };
+
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClose();
   };
 
   if (loading) {
@@ -91,7 +105,7 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
         </CardHeader>
         <CardContent>
           <p>There are no quiz questions for this task.</p>
-          <Button onClick={onClose} className="mt-4">Close</Button>
+          <Button onClick={handleClose} className="mt-4">Close</Button>
         </CardContent>
       </Card>
     );
@@ -117,11 +131,11 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
           </div>
           
           <div className="flex gap-3 justify-center">
-            <Button onClick={resetQuiz} variant="outline" className="flex items-center gap-2">
+            <Button onClick={resetQuiz} variant="outline" className="flex items-center gap-1">
               <RotateCcw className="h-4 w-4" />
               Try Again
             </Button>
-            <Button onClick={onClose}>
+            <Button onClick={handleClose}>
               Close Quiz
             </Button>
           </div>
@@ -160,11 +174,15 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
         <div className="flex justify-between pt-4">
           <Button 
             variant="outline" 
-            onClick={onClose}
+            onClick={handleClose}
+            type="button"
           >
             Cancel
           </Button>
-          <Button onClick={handleNextQuestion}>
+          <Button 
+            onClick={handleNextQuestion}
+            type="button"
+          >
             {currentQuestionIndex === quiz.questions.length - 1 ? 'Finish' : 'Next Question'}
           </Button>
         </div>
