@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,11 +62,12 @@ export const useTasks = (goalId: string) => {
       if (data) {
         setTasks([...tasks, ...data]);
         toast.success("Task added to goal successfully!");
+        return data[0];  // Return the created task
       }
-      return true;
+      return null;
     } catch (error: any) {
       toast.error(`Error creating task: ${error.message}`);
-      return false;
+      return null;
     }
   };
 

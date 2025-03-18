@@ -1,38 +1,29 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Flag, Plus, ListChecks, Book, Award } from "lucide-react";
+import { Flag, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useGoals, type Goal } from "@/hooks/useGoals";
-import { useTasks, type Task } from "@/hooks/useTasks";
-import { useQuizzes } from "@/hooks/useQuizzes";
+import { useGoals } from "@/hooks/useGoals";
+import { useTasks } from "@/hooks/useTasks";
 import { GoalList } from "@/components/GoalList";
 
 const GoalsPage: React.FC = () => {
   const navigate = useNavigate();
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [openGoalDialog, setOpenGoalDialog] = useState(false);
-  const [openTaskDialog, setOpenTaskDialog] = useState(false);
-  const [openTaskSheet, setOpenTaskSheet] = useState(false);
-  const [openQuizDialog, setOpenQuizDialog] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: "", description: "", target_date: "" });
-  const [newTask, setNewTask] = useState({ title: "", description: "", article_content: "" });
-  const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
-  const [quizScore, setQuizScore] = useState<number | null>(null);
-
+  
   // Custom hooks
-  const { goals, isLoading, createGoal, deleteGoal } = useGoals();
+  const { goals, createGoal, deleteGoal } = useGoals();
   const { tasks, fetchTasks, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
-  const { fetchQuiz } = useQuizzes();
 
   // Check authentication status
-  React.useEffect(() => {
+  useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       
@@ -66,44 +57,68 @@ const GoalsPage: React.FC = () => {
     return Math.round((completedTasks / goalTasks.length) * 100);
   };
 
-  // Handle goal creation
+  // Handle goal creation with AI-generated content
   const handleCreateGoal = async () => {
-    const success = await createGoal(newGoal);
-    if (success) {
+    try {
+      setIsCreating(true);
+      
+      // Create the goal first
+      const success = await createGoal(newGoal);
+      if (!success) {
+        throw new Error("Failed to create goal");
+      }
+
+      // Generate tasks and quizzes using the edge function
+      const response = await supabase.functions.invoke('generate-goal-content', {
+        body: {
+          title: newGoal.title,
+          description: newGoal.description
+        }
+      });
+
+      if (response.error) {
+        throw new Error(`Error generating content: ${response.error.message}`);
+      }
+
+      const { data: { tasks: generatedTasks, quizzes } } = response;
+
+      // Create tasks and associated quizzes
+      for (let i = 0; i < generatedTasks.length; i++) {
+        const task = generatedTasks[i];
+        const taskSuccess = await createTask({
+          title: task.title,
+          description: task.description,
+          article_content: task.article_content
+        });
+
+        if (taskSuccess && task.id) {
+          // Create quiz for this task
+          const quiz = quizzes.find(q => q.task_index === i);
+          if (quiz) {
+            const { error: quizError } = await supabase
+              .from('quizzes')
+              .insert([{
+                task_id: task.id,
+                title: quiz.title,
+                questions: quiz.questions
+              }]);
+
+            if (quizError) {
+              console.error('Error creating quiz:', quizError);
+            }
+          }
+        }
+      }
+
       setNewGoal({ title: "", description: "", target_date: "" });
       setOpenGoalDialog(false);
+      toast.success("Financial goal created with AI-generated tasks and quizzes!");
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsCreating(false);
     }
   };
-
-  // Handle task creation
-  const handleCreateTask = async () => {
-    const success = await createTask(newTask);
-    if (success) {
-      setNewTask({ title: "", description: "", article_content: "" });
-      setOpenTaskDialog(false);
-    }
-  };
-
-  // Handle quiz
-  const startQuiz = async (taskId: string) => {
-    const quiz = await fetchQuiz(taskId);
-    if (quiz) {
-      setQuizAnswers(Array(quiz.questions.length).fill(-1));
-      setQuizScore(null);
-      setOpenQuizDialog(true);
-    } else {
-      toast.error("No quiz available for this task");
-    }
-  };
-
-  // Main render
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-20 px-4 max-w-7xl">
@@ -124,7 +139,7 @@ const GoalsPage: React.FC = () => {
             <DialogHeader>
               <DialogTitle>Create a New Financial Goal</DialogTitle>
               <DialogDescription>
-                Define a financial goal you want to achieve. You can add tasks to break it down into actionable steps.
+                Define a financial goal you want to achieve. Tasks and quizzes will be automatically generated to help you reach your goal.
               </DialogDescription>
             </DialogHeader>
             
@@ -161,7 +176,13 @@ const GoalsPage: React.FC = () => {
             </div>
             
             <DialogFooter>
-              <Button type="submit" onClick={handleCreateGoal}>Create Goal</Button>
+              <Button 
+                type="submit" 
+                onClick={handleCreateGoal}
+                disabled={isCreating}
+              >
+                {isCreating ? 'Creating...' : 'Create Goal'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
