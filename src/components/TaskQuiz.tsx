@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuizzes } from "@/hooks/useQuizzes";
@@ -7,6 +7,7 @@ import { Loader2, Award, RotateCcw } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import type { Quiz } from "@/hooks/useQuizzes";
 
 interface TaskQuizProps {
   taskId: string;
@@ -15,49 +16,57 @@ interface TaskQuizProps {
 
 const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
   const { fetchQuiz } = useQuizzes();
-  const [quiz, setQuiz] = useState<any>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
-    const getQuiz = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const quizData = await fetchQuiz(taskId);
-        
-        if (!quizData) {
-          setQuiz(null);
-          return;
-        }
-        
-        setQuiz(quizData);
-        
-        // Initialize selectedAnswers array with -1 for each question
-        if (quizData.questions && Array.isArray(quizData.questions)) {
-          setSelectedAnswers(Array(quizData.questions.length).fill(-1));
-        } else {
-          // Handle case where questions is not an array
-          setError("Invalid quiz data format");
-          setQuiz(null);
-        }
-      } catch (error: any) {
-        console.error("Error fetching quiz:", error);
-        setError(error.message || "Failed to load quiz");
-        toast.error(`Error fetching quiz: ${error.message || "Unknown error"}`);
-      } finally {
+  // Memoize the getQuiz function to prevent it from changing on every render
+  const getQuiz = useCallback(async () => {
+    if (!taskId || !fetchQuiz) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const quizData = await fetchQuiz(taskId);
+      
+      if (!quizData) {
+        setQuiz(null);
         setLoading(false);
+        return;
       }
-    };
-
-    if (taskId) {
-      getQuiz();
+      
+      setQuiz(quizData);
+      
+      // Initialize selectedAnswers array with -1 for each question
+      if (quizData.questions && Array.isArray(quizData.questions)) {
+        setSelectedAnswers(Array(quizData.questions.length).fill(-1));
+      } else {
+        // Handle case where questions is not an array
+        setError("Invalid quiz data format");
+        setQuiz(null);
+      }
+    } catch (error: any) {
+      console.error("Error fetching quiz:", error);
+      setError(error.message || "Failed to load quiz");
+      toast.error(`Error fetching quiz: ${error.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
     }
   }, [taskId, fetchQuiz]);
+
+  // Use useEffect with proper dependency array and initialization flag
+  useEffect(() => {
+    if (!isInitialized && taskId) {
+      setIsInitialized(true);
+      getQuiz();
+    }
+  }, [isInitialized, taskId, getQuiz]);
 
   const handleSelectAnswer = (optionIndex: number) => {
     const newSelectedAnswers = [...selectedAnswers];
@@ -79,13 +88,13 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
     } else {
       // Calculate score
       let correctAnswers = 0;
-      quiz.questions.forEach((question: any, index: number) => {
+      quiz?.questions.forEach((question, index) => {
         if (selectedAnswers[index] === question.correct_option) {
           correctAnswers++;
         }
       });
       
-      const finalScore = Math.round((correctAnswers / quiz.questions.length) * 100);
+      const finalScore = Math.round((correctAnswers / (quiz?.questions.length || 1)) * 100);
       setScore(finalScore);
       setQuizCompleted(true);
     }
@@ -156,7 +165,7 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
           <div className="text-center py-4">
             <div className="text-4xl font-bold mb-2">{score}%</div>
             <p className="text-muted-foreground">
-              You got {quiz.questions.filter((_: any, index: number) => 
+              You got {quiz.questions.filter((_, index) => 
                 selectedAnswers[index] === quiz.questions[index].correct_option
               ).length} out of {quiz.questions.length} questions correct
             </p>
@@ -193,7 +202,7 @@ const TaskQuiz: React.FC<TaskQuizProps> = ({ taskId, onClose }) => {
           value={selectedAnswers[currentQuestionIndex].toString()} 
           onValueChange={(value) => handleSelectAnswer(parseInt(value))}
         >
-          {currentQuestion.options.map((option: string, index: number) => (
+          {currentQuestion.options.map((option, index) => (
             <div key={index} className="flex items-start space-x-2 my-2">
               <RadioGroupItem value={index.toString()} id={`option-${index}`} />
               <Label htmlFor={`option-${index}`} className="font-normal cursor-pointer">
