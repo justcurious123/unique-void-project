@@ -65,6 +65,109 @@ export type Database = {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          id: string
+          target_date: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          target_date?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          target_date?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          id: string
+          questions: Json
+          task_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          questions?: Json
+          task_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          questions?: Json
+          task_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          article_content: string | null
+          completed: boolean
+          created_at: string
+          description: string | null
+          goal_id: string
+          id: string
+          order_number: number
+          title: string
+        }
+        Insert: {
+          article_content?: string | null
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          goal_id: string
+          id?: string
+          order_number: number
+          title: string
+        }
+        Update: {
+          article_content?: string | null
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          goal_id?: string
+          id?: string
+          order_number?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
