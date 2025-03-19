@@ -160,37 +160,37 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
                     }`}
                     onClick={() => onThreadSelect(thread.id)}
                   >
-                    <div className="flex items-center gap-2 overflow-hidden p-3">
+                    <div className="flex items-center gap-2 overflow-hidden p-3 flex-grow">
                       <MessageSquare className="h-4 w-4 shrink-0" />
                       <span className="truncate text-sm">{thread.title}</span>
                     </div>
                     
-                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-auto pr-2 ${
+                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center mr-1 ${
                       thread.id === activeThreadId ? "text-white" : ""
                     }`}>
                       <Button 
                         variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 rounded-full" 
+                        size="sm"
+                        className="h-6 w-6 p-0 rounded-full" 
                         onClick={(e) => {
                           e.stopPropagation();
                           startEditingThread(thread);
                         }}
                       >
-                        <PenSquare className="h-3.5 w-3.5" />
+                        <PenSquare className="h-3 w-3" />
                         <span className="sr-only">Rename</span>
                       </Button>
                       
                       <Button 
                         variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 rounded-full" 
+                        size="sm"
+                        className="h-6 w-6 p-0 rounded-full" 
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteThread(thread.id);
                         }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3 w-3" />
                         <span className="sr-only">Delete</span>
                       </Button>
                     </div>
