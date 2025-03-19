@@ -64,7 +64,7 @@ serve(async (req) => {
     
     systemPrompt += ` Format important points, headings, and key terms with double asterisks like **this** for emphasis. Use numbered lists where appropriate but keep formatting clean and simple. Don't overuse formatting, just highlight the most important parts.`;
 
-    // Convert chat history to OpenAI message format
+    // Initialize conversation messages array with system message
     const conversationMessages = [
       { 
         role: "system", 
@@ -72,24 +72,29 @@ serve(async (req) => {
       }
     ];
 
-    // Add previous messages to the conversation context
+    // Add all previous messages to the conversation context
     if (chatHistory && chatHistory.length > 0) {
-      chatHistory.forEach(msg => {
+      for (const msg of chatHistory) {
         if (msg && msg.content && msg.sender) {
           conversationMessages.push({
             role: msg.sender === "user" ? "user" : "assistant",
             content: msg.content
           });
         }
-      });
+      }
       
       console.log(`Added ${chatHistory.length} messages from history to conversation context`);
     }
 
-    // Check if the current message is already in the history to avoid duplicates
-    const isMessageInHistory = chatHistory && chatHistory.some(
-      msg => msg.sender === "user" && msg.content === message
-    );
+    // Check if the current message is already in the history (to avoid duplicates)
+    // Only do this check for the most recent user message to prevent edge cases
+    let isMessageInHistory = false;
+    if (chatHistory && chatHistory.length > 0) {
+      const lastUserMessage = [...chatHistory].reverse().find(msg => msg.sender === "user");
+      if (lastUserMessage && lastUserMessage.content === message) {
+        isMessageInHistory = true;
+      }
+    }
 
     // Add the current message if it's not already in the history
     if (!isMessageInHistory) {
@@ -103,6 +108,7 @@ serve(async (req) => {
     }
 
     console.log(`Sending conversation with ${conversationMessages.length} messages to OpenAI`);
+    console.log(`Messages structure: ${JSON.stringify(conversationMessages.map(m => ({ role: m.role, content_preview: m.content.substring(0, 20) })))}`);
 
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
