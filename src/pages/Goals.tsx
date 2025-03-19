@@ -17,6 +17,7 @@ const GoalsPage: React.FC = () => {
   const [openGoalDialog, setOpenGoalDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: "", description: "", target_date: "" });
+  const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
   
   const { goals, createGoal, deleteGoal } = useGoals();
   const { tasks, isLoading: isTasksLoading, fetchTasks, createTask, updateTaskStatus } = useTasks(expandedGoalId || "");
@@ -34,6 +35,16 @@ const GoalsPage: React.FC = () => {
     checkAuth();
   }, [navigate]);
 
+  // Cache tasks for each goal to calculate progress even when not expanded
+  useEffect(() => {
+    if (expandedGoalId && tasks.length > 0) {
+      setGoalTasksCache(prev => ({
+        ...prev,
+        [expandedGoalId]: tasks
+      }));
+    }
+  }, [expandedGoalId, tasks]);
+
   const toggleGoalExpand = async (goalId: string) => {
     if (expandedGoalId === goalId) {
       setExpandedGoalId(null);
@@ -43,14 +54,71 @@ const GoalsPage: React.FC = () => {
   };
 
   const calculateGoalProgress = (goalId: string) => {
-    if (!expandedGoalId || expandedGoalId !== goalId) return 0;
+    // First check if we have cached tasks for this goal
+    const cachedTasks = goalTasksCache[goalId] || [];
     
-    const goalTasks = tasks.filter(task => task.goal_id === goalId);
-    if (goalTasks.length === 0) return 0;
+    // If we have the goal expanded and tasks loaded, use current tasks
+    const goalTasks = expandedGoalId === goalId ? tasks : cachedTasks;
+    
+    // If we don't have any tasks yet for this goal
+    if (goalTasks.length === 0) {
+      // For unexpanded goals, we need to fetch tasks
+      if (expandedGoalId !== goalId && !goalTasksCache[goalId]) {
+        fetchTasksForGoal(goalId);
+        return 0; // Return 0 until we get tasks
+      }
+      return 0;
+    }
     
     const completedTasks = goalTasks.filter(task => task.completed).length;
     return Math.round((completedTasks / goalTasks.length) * 100);
   };
+
+  // Helper function to fetch tasks for a specific goal
+  const fetchTasksForGoal = async (goalId: string) => {
+    if (!goalId || goalTasksCache[goalId]) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('goal_id', goalId);
+        
+      if (error) throw error;
+      
+      if (data) {
+        setGoalTasksCache(prev => ({
+          ...prev,
+          [goalId]: data
+        }));
+      }
+    } catch (error: any) {
+      console.error(`Error fetching tasks for goal ${goalId}:`, error.message);
+    }
+  };
+
+  // When the goals list changes, clear any cached tasks for deleted goals
+  useEffect(() => {
+    if (goals.length > 0) {
+      const goalIds = goals.map(goal => goal.id);
+      const newCache: Record<string, any[]> = {};
+      
+      Object.keys(goalTasksCache).forEach(cachedGoalId => {
+        if (goalIds.includes(cachedGoalId)) {
+          newCache[cachedGoalId] = goalTasksCache[cachedGoalId];
+        }
+      });
+      
+      // Fetch tasks for goals that don't have cached tasks
+      goalIds.forEach(goalId => {
+        if (!newCache[goalId]) {
+          fetchTasksForGoal(goalId);
+        }
+      });
+      
+      setGoalTasksCache(newCache);
+    }
+  }, [goals]);
 
   const handleCreateGoal = async () => {
     try {

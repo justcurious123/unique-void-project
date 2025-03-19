@@ -50,124 +50,129 @@ export const GoalList: React.FC<GoalListProps> = ({
 
   return (
     <div className="grid gap-6">
-      {goals.map((goal) => (
-        <Collapsible
-          key={goal.id}
-          open={expandedGoalId === goal.id}
-          onOpenChange={() => onExpandGoal(goal.id)}
-        >
-          <Card className={goal.completed ? "border-green-200 bg-green-50/30" : ""}>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {goal.completed && <CheckCircle className="h-5 w-5 text-green-500" />}
-                    {goal.title}
-                  </CardTitle>
-                  <CardDescription className="mt-1.5">{goal.description}</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" onClick={() => onDeleteGoal(goal.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <CollapsibleTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      aria-expanded={expandedGoalId === goal.id}
-                    >
-                      <ChevronDown 
-                        className={cn(
-                          "h-4 w-4 transition-transform duration-200",
-                          expandedGoalId === goal.id ? "rotate-180" : ""
-                        )} 
-                      />
+      {goals.map((goal) => {
+        // Calculate progress once for each goal to ensure consistency
+        const progressValue = calculateProgress(goal.id);
+        
+        return (
+          <Collapsible
+            key={goal.id}
+            open={expandedGoalId === goal.id}
+            onOpenChange={() => onExpandGoal(goal.id)}
+          >
+            <Card className={goal.completed ? "border-green-200 bg-green-50/30" : ""}>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {goal.completed && <CheckCircle className="h-5 w-5 text-green-500" />}
+                      {goal.title}
+                    </CardTitle>
+                    <CardDescription className="mt-1.5">{goal.description}</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => onDeleteGoal(goal.id)}>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  </CollapsibleTrigger>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        aria-expanded={expandedGoalId === goal.id}
+                      >
+                        <ChevronDown 
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            expandedGoalId === goal.id ? "rotate-180" : ""
+                          )} 
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="pb-3">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Progress</span>
-                <span className="text-sm">
-                  {calculateProgress(goal.id)}%
-                </span>
-              </div>
-              <Progress value={calculateProgress(goal.id)} className="h-2" />
-            </CardContent>
-
-            <CollapsibleContent>
-              <CardContent className="pt-0">
-                {isTasksLoading ? (
-                  <div className="py-6 flex justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : tasks.length === 0 ? (
-                  <div className="py-4 text-center text-muted-foreground">
-                    No tasks created for this goal yet.
-                  </div>
-                ) : activeQuizTaskId ? (
-                  <div className="mt-4">
-                    <TaskQuiz 
-                      taskId={activeQuizTaskId} 
-                      onClose={() => setActiveQuizTaskId(null)} 
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Tasks</h3>
-                    <div className="space-y-2">
-                      {tasks.map((task) => (
-                        <div key={task.id} className="flex items-start gap-3 p-3 rounded-md border">
-                          <Checkbox 
-                            id={`task-${task.id}`} 
-                            checked={task.completed}
-                            onCheckedChange={(checked) => {
-                              if (typeof checked === 'boolean') {
-                                onUpdateTaskStatus(task.id, checked);
-                              }
-                            }}
-                          />
-                          <div className="flex-1 space-y-1">
-                            <label 
-                              htmlFor={`task-${task.id}`}
-                              className={cn(
-                                "font-medium cursor-pointer",
-                                task.completed && "line-through text-muted-foreground"
-                              )}
-                            >
-                              {task.title}
-                            </label>
-                            {task.description && (
-                              <p className="text-sm text-muted-foreground">{task.description}</p>
-                            )}
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="flex items-center gap-1"
-                            onClick={(e) => {
-                              e.preventDefault(); // Prevent any default behavior
-                              e.stopPropagation(); // Stop event propagation
-                              setActiveQuizTaskId(task.id);
-                            }}
-                            type="button" // Explicitly set button type
-                          >
-                            <BookOpen className="h-3.5 w-3.5" />
-                            <span>Quiz</span>
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              </CardHeader>
+              
+              <CardContent className="pb-3">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Progress</span>
+                  <span className="text-sm">
+                    {progressValue}%
+                  </span>
+                </div>
+                <Progress value={progressValue} className="h-2" />
               </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-      ))}
+
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  {isTasksLoading ? (
+                    <div className="py-6 flex justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : tasks.length === 0 ? (
+                    <div className="py-4 text-center text-muted-foreground">
+                      No tasks created for this goal yet.
+                    </div>
+                  ) : activeQuizTaskId ? (
+                    <div className="mt-4">
+                      <TaskQuiz 
+                        taskId={activeQuizTaskId} 
+                        onClose={() => setActiveQuizTaskId(null)} 
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Tasks</h3>
+                      <div className="space-y-2">
+                        {tasks.map((task) => (
+                          <div key={task.id} className="flex items-start gap-3 p-3 rounded-md border">
+                            <Checkbox 
+                              id={`task-${task.id}`} 
+                              checked={task.completed}
+                              onCheckedChange={(checked) => {
+                                if (typeof checked === 'boolean') {
+                                  onUpdateTaskStatus(task.id, checked);
+                                }
+                              }}
+                            />
+                            <div className="flex-1 space-y-1">
+                              <label 
+                                htmlFor={`task-${task.id}`}
+                                className={cn(
+                                  "font-medium cursor-pointer",
+                                  task.completed && "line-through text-muted-foreground"
+                                )}
+                              >
+                                {task.title}
+                              </label>
+                              {task.description && (
+                                <p className="text-sm text-muted-foreground">{task.description}</p>
+                              )}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="flex items-center gap-1"
+                              onClick={(e) => {
+                                e.preventDefault(); // Prevent any default behavior
+                                e.stopPropagation(); // Stop event propagation
+                                setActiveQuizTaskId(task.id);
+                              }}
+                              type="button" // Explicitly set button type
+                            >
+                              <BookOpen className="h-3.5 w-3.5" />
+                              <span>Quiz</span>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        );
+      })}
     </div>
   );
 };
