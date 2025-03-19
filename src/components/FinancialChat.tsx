@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +33,6 @@ const FinancialChat: React.FC = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -46,7 +44,6 @@ const FinancialChat: React.FC = () => {
     getCurrentUser();
   }, []);
 
-  // Load chat threads
   useEffect(() => {
     if (!userId) return;
     
@@ -63,8 +60,6 @@ const FinancialChat: React.FC = () => {
         
         setThreads(data as ChatThread[] || []);
         
-        // If there are threads, set the active thread to the most recent one
-        // Otherwise, create a new thread
         if (data && data.length > 0) {
           setActiveThreadId(data[0].id);
         } else {
@@ -85,7 +80,6 @@ const FinancialChat: React.FC = () => {
     loadChatThreads();
   }, [userId, toast]);
 
-  // Load messages for active thread
   useEffect(() => {
     if (!activeThreadId) return;
     
@@ -101,7 +95,6 @@ const FinancialChat: React.FC = () => {
         
         if (error) throw error;
         
-        // Convert Supabase messages to our Message format
         const formattedMessages = data.map((msg) => ({
           id: msg.id,
           text: msg.content,
@@ -109,7 +102,6 @@ const FinancialChat: React.FC = () => {
           timestamp: new Date(msg.created_at),
         }));
         
-        // If it's a new thread, add a welcome message
         if (formattedMessages.length === 0 && isNewThread) {
           const welcomeMessage: Message = {
             id: "welcome",
@@ -120,7 +112,6 @@ const FinancialChat: React.FC = () => {
           
           setMessages([welcomeMessage]);
           
-          // Save the welcome message to the database
           await supabase
             .from('chat_messages')
             .insert({
@@ -148,7 +139,6 @@ const FinancialChat: React.FC = () => {
     loadMessages();
   }, [activeThreadId, isNewThread, toast]);
 
-  // Subscribe to new messages
   useEffect(() => {
     if (!activeThreadId) return;
     
@@ -160,7 +150,6 @@ const FinancialChat: React.FC = () => {
         table: 'chat_messages',
         filter: `thread_id=eq.${activeThreadId}`,
       }, (payload) => {
-        // Only add the message if it's not already in the messages array
         const existingMessage = messages.find(msg => msg.id === payload.new.id);
         if (!existingMessage) {
           const newMessage: Message = {
@@ -180,17 +169,14 @@ const FinancialChat: React.FC = () => {
     };
   }, [activeThreadId, messages]);
 
-  // Scroll to bottom of chat when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Create a new thread
   const createNewThread = async () => {
     if (!userId) return;
     
     try {
-      // Create a default title
       const defaultTitle = `Financial Chat ${new Date().toLocaleDateString()}`;
       
       const { data, error } = await supabase
@@ -207,7 +193,6 @@ const FinancialChat: React.FC = () => {
       setActiveThreadId(data.id);
       setIsNewThread(true);
       
-      // Update threads list
       loadThreads();
     } catch (error) {
       console.error("Error creating new thread:", error);
@@ -219,7 +204,6 @@ const FinancialChat: React.FC = () => {
     }
   };
 
-  // Load threads
   const loadThreads = async () => {
     if (!userId) return;
     
@@ -242,9 +226,7 @@ const FinancialChat: React.FC = () => {
     }
   };
 
-  // Update thread title based on first message
   const updateThreadTitle = async (threadId: string, message: string) => {
-    // Extract first few words for the title
     const words = message.split(' ');
     const title = words.slice(0, 5).join(' ') + (words.length > 5 ? '...' : '');
     
@@ -259,7 +241,6 @@ const FinancialChat: React.FC = () => {
       
       if (error) throw error;
       
-      // Update threads list
       loadThreads();
     } catch (error) {
       console.error("Error updating thread title:", error);
@@ -271,7 +252,6 @@ const FinancialChat: React.FC = () => {
     
     if (!inputValue.trim() || !activeThreadId) return;
     
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       text: inputValue,
@@ -284,7 +264,6 @@ const FinancialChat: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Save user message to database
       const { data: msgData, error: msgError } = await supabase
         .from('chat_messages')
         .insert({
@@ -297,19 +276,16 @@ const FinancialChat: React.FC = () => {
       
       if (msgError) throw msgError;
       
-      // Update thread title if it's the first user message
       const isFirstMessage = messages.filter(m => m.sender === "user").length === 0;
       if (isFirstMessage) {
         await updateThreadTitle(activeThreadId, userMessage.text);
       }
       
-      // Update thread timestamp
       await supabase
         .from('chat_threads')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', activeThreadId);
       
-      // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("financial-advice", {
         body: { 
           message: userMessage.text,
@@ -321,7 +297,6 @@ const FinancialChat: React.FC = () => {
         throw new Error(error.message || "Failed to get response");
       }
 
-      // Create AI message from response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: data.text,
@@ -329,7 +304,6 @@ const FinancialChat: React.FC = () => {
         timestamp: new Date(),
       };
       
-      // Save AI message to database
       await supabase
         .from('chat_messages')
         .insert({
@@ -337,19 +311,15 @@ const FinancialChat: React.FC = () => {
           content: aiMessage.text,
           sender: "ai",
         });
-      
-      // Note: We don't need to update messages state here, since we're subscribing to realtime updates
     } catch (error) {
       console.error("Error getting financial advice:", error);
       
-      // Show error toast
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
       
-      // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: "Sorry, I couldn't process your request. Please try again.",
@@ -359,7 +329,6 @@ const FinancialChat: React.FC = () => {
       
       setMessages(prev => [...prev, errorMessage]);
       
-      // Save error message to database
       await supabase
         .from('chat_messages')
         .insert({
@@ -386,23 +355,24 @@ const FinancialChat: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[70vh]">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex justify-between items-center mb-2 sm:mb-4">
+        <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             size="icon" 
             onClick={() => setIsThreadsSheetOpen(true)}
+            className="h-8 w-8"
           >
-            <MessageSquare className="h-5 w-5" />
+            <MessageSquare className="h-4 w-4" />
             <span className="sr-only">Chat History</span>
           </Button>
-          <h2 className="text-xl font-semibold">Financial Assistant</h2>
+          <h2 className="text-lg font-semibold">Financial Assistant</h2>
         </div>
         
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Settings className="h-4 w-4" />
               <span className="sr-only">Settings</span>
             </Button>
           </SheetTrigger>
@@ -439,12 +409,12 @@ const FinancialChat: React.FC = () => {
         </Sheet>
       </div>
       
-      <div className="flex-1 overflow-y-auto mb-4 space-y-4 rounded-md bg-white/5 p-4">
+      <div className="flex-1 overflow-y-auto mb-2 sm:mb-4 space-y-3 rounded-md bg-white/5 p-2 sm:p-4">
         {isThreadsLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-3/4" />
-            <Skeleton className="h-12 w-1/2 ml-auto" />
-            <Skeleton className="h-12 w-2/3" />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-10 w-1/2 ml-auto" />
+            <Skeleton className="h-10 w-2/3" />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -463,14 +433,14 @@ const FinancialChat: React.FC = () => {
               }`}
             >
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                className={`max-w-[85%] rounded-lg px-3 py-2 ${
                   message.sender === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-white/10"
                 }`}
               >
-                <p>{message.text}</p>
-                <p className="text-xs mt-1 opacity-70">
+                <p className="text-sm">{message.text}</p>
+                <p className="text-[10px] mt-1 opacity-70">
                   {message.timestamp.toLocaleTimeString([], { 
                     hour: '2-digit', 
                     minute: '2-digit' 
@@ -483,13 +453,13 @@ const FinancialChat: React.FC = () => {
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-lg px-4 py-2 bg-white/10">
+            <div className="max-w-[85%] rounded-lg px-3 py-2 bg-white/10">
               <div className="flex gap-2 items-center">
-                <Skeleton className="h-4 w-4 rounded-full" />
-                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-3 rounded-full" />
+                <Skeleton className="h-3 w-24" />
               </div>
-              <Skeleton className="h-4 w-48 mt-2" />
-              <Skeleton className="h-4 w-40 mt-1" />
+              <Skeleton className="h-3 w-32 mt-2" />
+              <Skeleton className="h-3 w-28 mt-1" />
             </div>
           </div>
         )}
@@ -498,15 +468,15 @@ const FinancialChat: React.FC = () => {
       </div>
       
       {showExamples && messages.length <= 2 && !isLoading && (
-        <div className="mb-4">
-          <p className="text-sm mb-2 text-muted-foreground">Try asking:</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-2 sm:mb-3">
+          <p className="text-xs mb-1 text-muted-foreground">Try asking:</p>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             {exampleQuestions.map((question, index) => (
               <Button
                 key={index}
                 variant="outline"
                 size="sm"
-                className="text-xs"
+                className="text-xs h-7"
                 onClick={() => setInputValue(question)}
               >
                 {question}
@@ -522,9 +492,14 @@ const FinancialChat: React.FC = () => {
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Ask about your financial goals..."
           disabled={isLoading || !activeThreadId}
-          className="flex-1"
+          className="flex-1 h-9"
         />
-        <Button type="submit" disabled={isLoading || !inputValue.trim() || !activeThreadId}>
+        <Button 
+          type="submit" 
+          disabled={isLoading || !inputValue.trim() || !activeThreadId}
+          size="sm"
+          className="h-9 px-3"
+        >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
