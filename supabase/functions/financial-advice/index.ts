@@ -33,6 +33,7 @@ serve(async (req) => {
     }
 
     console.log(`Processing financial advice request in thread: ${threadId}`);
+    console.log(`Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
     console.log(`Concise mode: ${conciseMode ? 'enabled' : 'disabled'}`);
 
     // Initialize Supabase client with service role key to bypass RLS
@@ -46,10 +47,11 @@ serve(async (req) => {
       .order('created_at', { ascending: true });
     
     if (historyError) {
+      console.error("Database error:", historyError);
       throw new Error(`Failed to fetch chat history: ${historyError.message}`);
     }
 
-    console.log(`Retrieved ${chatHistory.length} previous messages from the conversation`);
+    console.log(`Retrieved ${chatHistory?.length || 0} previous messages from the conversation`);
 
     // Prepare system prompt based on conciseMode
     let systemPrompt = `You are a helpful financial advisor chatbot. Provide educational, accurate, and actionable advice on personal finance topics.`;
@@ -71,15 +73,21 @@ serve(async (req) => {
     ];
 
     // Add previous messages to the conversation context
-    chatHistory.forEach(msg => {
-      conversationMessages.push({
-        role: msg.sender === "user" ? "user" : "assistant",
-        content: msg.content
+    if (chatHistory && chatHistory.length > 0) {
+      chatHistory.forEach(msg => {
+        if (msg && msg.content && msg.sender) {
+          conversationMessages.push({
+            role: msg.sender === "user" ? "user" : "assistant",
+            content: msg.content
+          });
+        }
       });
-    });
+      
+      console.log(`Added ${chatHistory.length} messages from history to conversation context`);
+    }
 
-    // Check if the current message is already in the history
-    const isMessageInHistory = chatHistory.some(
+    // Check if the current message is already in the history to avoid duplicates
+    const isMessageInHistory = chatHistory && chatHistory.some(
       msg => msg.sender === "user" && msg.content === message
     );
 
@@ -89,6 +97,9 @@ serve(async (req) => {
         role: "user",
         content: message
       });
+      console.log("Added current message to conversation context");
+    } else {
+      console.log("Current message already exists in history, skipping addition");
     }
 
     console.log(`Sending conversation with ${conversationMessages.length} messages to OpenAI`);
@@ -109,9 +120,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI API error:", error);
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+      const errorData = await response.json();
+      console.error("OpenAI API error:", JSON.stringify(errorData));
+      throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
     }
 
     const data = await response.json();
@@ -129,7 +140,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error:", error.message, error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
