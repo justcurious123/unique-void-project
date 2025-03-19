@@ -51,15 +51,15 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-pattern py-2 sm:py-8 px-2 sm:px-6">
-      <div className="max-w-4xl mx-auto glass-card p-3 sm:p-6 rounded-2xl">
-        <div className="mb-3 sm:mb-6">
+    <div className="min-h-screen bg-pattern py-1 sm:py-8 px-1 sm:px-6">
+      <div className="max-w-4xl mx-auto glass-card p-2 sm:p-6 rounded-2xl">
+        <div className="mb-2 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-base sm:text-lg text-muted-foreground">Welcome to your personal dashboard!</p>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6">
             <TabsTrigger value="home" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-4">
               <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className={isMobile ? "text-xs" : ""}>Home</span>
@@ -101,7 +101,7 @@ const Dashboard: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="chat" className="space-y-3 sm:space-y-6">
-            <div className="bg-white/10 p-2 sm:p-6 rounded-lg">
+            <div className="bg-white/10 p-1 sm:p-4 rounded-lg">
               <FinancialChat />
             </div>
           </TabsContent>

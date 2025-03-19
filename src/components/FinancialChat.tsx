@@ -439,7 +439,19 @@ const FinancialChat: React.FC = () => {
                     : "bg-white/10"
                 }`}
               >
-                <p className="text-sm">{message.text}</p>
+                {message.sender === "ai" ? (
+                  <div className="whitespace-pre-wrap text-sm leading-snug">
+                    {message.text.split('**').map((part, index) => 
+                      index % 2 === 0 ? (
+                        <span key={index}>{part}</span>
+                      ) : (
+                        <strong key={index}>{part}</strong>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                )}
                 <p className="text-[10px] mt-1 opacity-70">
                   {message.timestamp.toLocaleTimeString([], { 
                     hour: '2-digit', 

@@ -54,3 +54,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Chat message styles */
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.leading-snug {
+  line-height: 1.375;
+}

@@ -36,6 +36,8 @@ serve(async (req) => {
     } else {
       systemPrompt += ` You can be more detailed in your explanations, providing context and educational information.`;
     }
+    
+    systemPrompt += ` Format important points, headings, and key terms with double asterisks like **this** for emphasis. Use numbered lists where appropriate but keep formatting clean and simple. Don't overuse formatting, just highlight the most important parts.`;
 
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
