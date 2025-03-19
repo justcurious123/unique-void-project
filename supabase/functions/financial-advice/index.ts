@@ -78,18 +78,20 @@ serve(async (req) => {
       });
     });
 
-    // Add the current message if it's not already in the history
     // Check if the current message is already in the history
     const isMessageInHistory = chatHistory.some(
       msg => msg.sender === "user" && msg.content === message
     );
 
+    // Add the current message if it's not already in the history
     if (!isMessageInHistory) {
       conversationMessages.push({
         role: "user",
         content: message
       });
     }
+
+    console.log(`Sending conversation with ${conversationMessages.length} messages to OpenAI`);
 
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
