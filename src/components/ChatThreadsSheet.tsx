@@ -171,7 +171,7 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7" 
+                        className="h-7 w-7 rounded-full" 
                         onClick={(e) => {
                           e.stopPropagation();
                           startEditingThread(thread);
@@ -184,7 +184,7 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7" 
+                        className="h-7 w-7 rounded-full" 
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteThread(thread.id);
