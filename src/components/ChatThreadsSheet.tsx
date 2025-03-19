@@ -17,10 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define our own types instead of relying on the generated types
 export type ChatThread = {
@@ -52,6 +54,7 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
   const { toast } = useToast();
   const [editingThread, setEditingThread] = useState<ChatThread | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const isMobile = useIsMobile();
 
   const handleDeleteThread = async (threadId: string) => {
     try {
@@ -160,37 +163,37 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
                     }`}
                     onClick={() => onThreadSelect(thread.id)}
                   >
-                    <div className="flex items-center gap-2 overflow-hidden p-3 flex-grow">
+                    <div className="flex items-center gap-2 overflow-hidden p-3 flex-grow min-w-0">
                       <MessageSquare className="h-4 w-4 shrink-0" />
                       <span className="truncate text-sm">{thread.title}</span>
                     </div>
                     
-                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center mr-1 ${
+                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center ${
                       thread.id === activeThreadId ? "text-white" : ""
                     }`}>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        className="h-6 w-6 p-0 rounded-full" 
+                        className="h-5 w-5 p-0 min-w-0 rounded-full" 
                         onClick={(e) => {
                           e.stopPropagation();
                           startEditingThread(thread);
                         }}
                       >
-                        <PenSquare className="h-3 w-3" />
+                        <PenSquare className="h-2.5 w-2.5" />
                         <span className="sr-only">Rename</span>
                       </Button>
                       
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        className="h-6 w-6 p-0 rounded-full" 
+                        className="h-5 w-5 p-0 min-w-0 rounded-full mr-2" 
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteThread(thread.id);
                         }}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-2.5 w-2.5" />
                         <span className="sr-only">Delete</span>
                       </Button>
                     </div>
@@ -205,6 +208,7 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Rename Chat Thread</DialogTitle>
+              <DialogDescription>Enter a new title for this chat thread.</DialogDescription>
             </DialogHeader>
             
             <div className="py-4">
