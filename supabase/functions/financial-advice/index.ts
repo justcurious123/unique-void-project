@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +15,10 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conciseMode } = await req.json();
+    const { message, threadId, conciseMode } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!openAIApiKey) {
       throw new Error("OpenAI API key is not configured");
@@ -25,8 +28,28 @@ serve(async (req) => {
       throw new Error("No message provided");
     }
 
-    console.log(`Processing financial advice request: ${message}`);
+    if (!threadId) {
+      throw new Error("No thread ID provided");
+    }
+
+    console.log(`Processing financial advice request in thread: ${threadId}`);
     console.log(`Concise mode: ${conciseMode ? 'enabled' : 'disabled'}`);
+
+    // Initialize Supabase client with service role key to bypass RLS
+    const supabase = createClient(supabaseUrl || '', supabaseServiceKey || '');
+
+    // Fetch conversation history from the database
+    const { data: chatHistory, error: historyError } = await supabase
+      .from('chat_messages')
+      .select('content, sender, created_at')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: true });
+    
+    if (historyError) {
+      throw new Error(`Failed to fetch chat history: ${historyError.message}`);
+    }
+
+    console.log(`Retrieved ${chatHistory.length} previous messages from the conversation`);
 
     // Prepare system prompt based on conciseMode
     let systemPrompt = `You are a helpful financial advisor chatbot. Provide educational, accurate, and actionable advice on personal finance topics.`;
@@ -39,6 +62,22 @@ serve(async (req) => {
     
     systemPrompt += ` Format important points, headings, and key terms with double asterisks like **this** for emphasis. Use numbered lists where appropriate but keep formatting clean and simple. Don't overuse formatting, just highlight the most important parts.`;
 
+    // Convert chat history to OpenAI message format
+    const conversationMessages = [
+      { 
+        role: "system", 
+        content: systemPrompt 
+      }
+    ];
+
+    // Add previous messages to the conversation context
+    chatHistory.forEach(msg => {
+      conversationMessages.push({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.content
+      });
+    });
+
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -48,16 +87,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        messages: [
-          { 
-            role: "system", 
-            content: systemPrompt 
-          },
-          { 
-            role: "user", 
-            content: message 
-          }
-        ],
+        messages: conversationMessages,
         temperature: 0.7,
         max_tokens: conciseMode ? 250 : 500,
       }),

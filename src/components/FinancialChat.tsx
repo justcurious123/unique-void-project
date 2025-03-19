@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -307,6 +308,7 @@ const FinancialChat: React.FC = () => {
       const { data, error } = await supabase.functions.invoke("financial-advice", {
         body: { 
           message: userMessageText,
+          threadId: activeThreadId,
           conciseMode: conciseResponses
         }
       });
