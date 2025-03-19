@@ -150,8 +150,9 @@ const FinancialChat: React.FC = () => {
         table: 'chat_messages',
         filter: `thread_id=eq.${activeThreadId}`,
       }, (payload) => {
-        const existingMessage = messages.find(msg => msg.id === payload.new.id);
-        if (!existingMessage) {
+        const processedMessageIds = new Set(messages.map(msg => msg.id));
+        
+        if (!processedMessageIds.has(payload.new.id)) {
           const newMessage: Message = {
             id: payload.new.id,
             text: payload.new.content,
@@ -160,6 +161,7 @@ const FinancialChat: React.FC = () => {
           };
           
           setMessages(prev => [...prev, newMessage]);
+          processedMessageIds.add(payload.new.id);
         }
       })
       .subscribe();
@@ -252,23 +254,26 @@ const FinancialChat: React.FC = () => {
     
     if (!inputValue.trim() || !activeThreadId) return;
     
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputValue,
-      sender: "user",
-      timestamp: new Date(),
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
+    const userMessageText = inputValue.trim();
     setInputValue("");
     setIsLoading(true);
     
     try {
+      const optimisticId = `temp-${Date.now()}`;
+      const optimisticMessage: Message = {
+        id: optimisticId,
+        text: userMessageText,
+        sender: "user",
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, optimisticMessage]);
+      
       const { data: msgData, error: msgError } = await supabase
         .from('chat_messages')
         .insert({
           thread_id: activeThreadId,
-          content: userMessage.text,
+          content: userMessageText,
           sender: "user",
         })
         .select()
@@ -276,9 +281,22 @@ const FinancialChat: React.FC = () => {
       
       if (msgError) throw msgError;
       
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === optimisticId 
+            ? {
+                id: msgData.id,
+                text: msgData.content,
+                sender: msgData.sender as "user" | "ai",
+                timestamp: new Date(msgData.created_at),
+              }
+            : msg
+        )
+      );
+      
       const isFirstMessage = messages.filter(m => m.sender === "user").length === 0;
       if (isFirstMessage) {
-        await updateThreadTitle(activeThreadId, userMessage.text);
+        await updateThreadTitle(activeThreadId, userMessageText);
       }
       
       await supabase
@@ -288,7 +306,7 @@ const FinancialChat: React.FC = () => {
       
       const { data, error } = await supabase.functions.invoke("financial-advice", {
         body: { 
-          message: userMessage.text,
+          message: userMessageText,
           conciseMode: conciseResponses
         }
       });
@@ -297,18 +315,11 @@ const FinancialChat: React.FC = () => {
         throw new Error(error.message || "Failed to get response");
       }
 
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: data.text,
-        sender: "ai",
-        timestamp: new Date(),
-      };
-      
       await supabase
         .from('chat_messages')
         .insert({
           thread_id: activeThreadId,
-          content: aiMessage.text,
+          content: data.text,
           sender: "ai",
         });
     } catch (error) {
@@ -321,7 +332,7 @@ const FinancialChat: React.FC = () => {
       });
       
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `error-${Date.now()}`,
         text: "Sorry, I couldn't process your request. Please try again.",
         sender: "ai",
         timestamp: new Date(),
