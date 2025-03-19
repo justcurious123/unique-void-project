@@ -92,7 +92,7 @@ export const GoalList: React.FC<GoalListProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Progress</span>
                 <span className="text-sm">
-                  {expandedGoalId === goal.id ? `${calculateProgress(goal.id)}%` : ''}
+                  {calculateProgress(goal.id)}%
                 </span>
               </div>
               <Progress value={calculateProgress(goal.id)} className="h-2" />
