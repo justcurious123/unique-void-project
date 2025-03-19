@@ -81,7 +81,13 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+  }
+
+  @media (min-width: 640px) {
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
   }
 
   ::-webkit-scrollbar-track {
@@ -108,5 +114,18 @@
   
   .glass-card {
     @apply bg-white/60 backdrop-blur-md border border-white/20 shadow-glass;
+  }
+
+  /* Responsive padding utility classes */
+  .p-responsive {
+    @apply p-3 sm:p-6;
+  }
+
+  .px-responsive {
+    @apply px-3 sm:px-6;
+  }
+
+  .py-responsive {
+    @apply py-3 sm:py-6;
   }
 }

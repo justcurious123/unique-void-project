@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -44,10 +45,10 @@ const NavBar: React.FC = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 md:px-10",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 md:px-10",
         isScrolled
-          ? "py-4 glass-effect shadow-subtle"
-          : "py-6 bg-transparent"
+          ? "py-3 glass-effect shadow-subtle"
+          : "py-4 sm:py-6 bg-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -113,7 +114,7 @@ const NavBar: React.FC = () => {
           mobileMenuOpen ? "max-h-96 py-4" : "max-h-0 py-0"
         )}
       >
-        <nav className="flex flex-col space-y-4 px-6">
+        <nav className="flex flex-col space-y-4 px-4">
           {["Features", "Gallery", "About", "Contact"].map((item) => (
             <a
               key={item}
