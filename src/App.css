@@ -63,3 +63,22 @@
 .leading-snug {
   line-height: 1.375;
 }
+
+/* Chat thread styles */
+.sheet-chat-thread {
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.sheet-chat-thread:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sheet-chat-thread.active {
+  background-color: #3b82f6;
+  color: white;
+}

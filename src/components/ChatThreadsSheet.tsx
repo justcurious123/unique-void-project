@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
   DialogFooter
 } from "@/components/ui/dialog";
@@ -129,21 +128,21 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left">
-        <SheetHeader>
-          <SheetTitle>Chat History</SheetTitle>
+      <SheetContent side="left" className="p-0 pt-10 w-[300px] sm:w-[350px]">
+        <SheetHeader className="px-4 mb-2">
+          <SheetTitle className="text-xl text-left">Chat History</SheetTitle>
         </SheetHeader>
         
-        <div className="py-4">
+        <div className="px-4 pb-4">
           <Button 
             onClick={onCreateNewThread} 
-            className="w-full mb-4 flex items-center justify-center gap-2"
+            className="w-full rounded-lg flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2"
           >
             <Plus className="h-4 w-4" />
             <span>New Chat</span>
           </Button>
           
-          <ScrollArea className="h-[calc(100vh-180px)]">
+          <ScrollArea className="h-[calc(100vh-140px)] mt-4">
             {threads.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <p>No chat threads yet</p>
@@ -154,20 +153,20 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
                 {threads.map((thread) => (
                   <div 
                     key={thread.id}
-                    className={`group p-2 rounded-md flex items-center justify-between cursor-pointer transition-colors ${
+                    className={`group rounded-lg flex items-center cursor-pointer transition-colors ${
                       thread.id === activeThreadId 
-                        ? "bg-primary text-primary-foreground" 
-                        : "hover:bg-accent"
+                        ? "bg-blue-500 text-white" 
+                        : "hover:bg-slate-100"
                     }`}
                     onClick={() => onThreadSelect(thread.id)}
                   >
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex items-center gap-2 overflow-hidden p-3">
                       <MessageSquare className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{thread.title}</span>
+                      <span className="truncate text-sm">{thread.title}</span>
                     </div>
                     
-                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ${
-                      thread.id === activeThreadId ? "text-primary-foreground" : ""
+                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-auto pr-2 ${
+                      thread.id === activeThreadId ? "text-white" : ""
                     }`}>
                       <Button 
                         variant="ghost" 
