@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { MessageSquare, User, Plus } from "lucide-react";
+import { MessageSquare, User, Flag, Plus } from "lucide-react";
 import FinancialChat from "@/components/FinancialChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoalList } from "@/components/GoalList";
@@ -180,6 +180,7 @@ const Dashboard: React.FC = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6">
             <TabsTrigger value="goals" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-4">
+              <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className={isMobile ? "text-xs" : ""}>Goals</span>
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-4">
@@ -195,11 +196,12 @@ const Dashboard: React.FC = () => {
           <TabsContent value="goals" className="space-y-3 sm:space-y-6">
             <div className="bg-white/10 p-3 sm:p-6 rounded-lg">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-primary">Financial Goals</h2>
+                <h2 className="text-xl font-semibold">Financial Goals</h2>
                 <Dialog open={openGoalDialog} onOpenChange={setOpenGoalDialog}>
                   <DialogTrigger asChild>
-                    <Button size="icon" className="bg-primary text-white rounded-full">
+                    <Button className="gap-1">
                       <Plus size={18} />
+                      New Goal
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
