@@ -51,7 +51,7 @@ export const GoalList: React.FC<GoalListProps> = ({
   }
 
   return (
-    <div className="grid gap-4 sm:gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
       {goals.map((goal) => {
         // Calculate progress once for each goal to ensure consistency
         const progressValue = calculateProgress(goal.id);
