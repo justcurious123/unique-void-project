@@ -5,30 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { MessageSquare, User, Flag } from "lucide-react";
+import { MessageSquare, User, Flag, Plus } from "lucide-react";
 import FinancialChat from "@/components/FinancialChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoalList } from "@/components/GoalList";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: toastUI } = useToast();
   const [activeTab, setActiveTab] = useState("goals");
   const isMobile = useIsMobile();
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
+  const [openGoalDialog, setOpenGoalDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newGoal, setNewGoal] = useState({ title: "", description: "", target_date: "" });
 
-  const { goals, deleteGoal } = useGoals();
-  const { tasks, isLoading: isTasksLoading, fetchTasks, updateTaskStatus } = useTasks(expandedGoalId || "");
+  const { goals, createGoal, deleteGoal } = useGoals();
+  const { tasks, isLoading: isTasksLoading, fetchTasks, updateTaskStatus, createTask } = useTasks(expandedGoalId || "");
 
   // Check if user is authenticated
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        toast({
+        toastUI({
           title: "Not authenticated",
           description: "Please login to access the dashboard",
           variant: "destructive",
@@ -38,7 +44,7 @@ const Dashboard: React.FC = () => {
     };
 
     checkUser();
-  }, [navigate, toast]);
+  }, [navigate, toastUI]);
 
   // Cache tasks for expanded goal
   useEffect(() => {
@@ -77,7 +83,7 @@ const Dashboard: React.FC = () => {
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      toast({
+      toastUI({
         title: "Error signing out",
         description: error.message,
         variant: "destructive",
@@ -85,11 +91,87 @@ const Dashboard: React.FC = () => {
       return;
     }
     
-    toast({
+    toastUI({
       title: "Signed out successfully",
       description: "You have been logged out",
     });
     navigate("/");
+  };
+
+  const handleCreateGoal = async () => {
+    try {
+      setIsCreating(true);
+      
+      const createdGoal = await createGoal(newGoal);
+      if (!createdGoal) {
+        throw new Error("Failed to create goal");
+      }
+
+      setExpandedGoalId(createdGoal.id);
+      
+      const response = await supabase.functions.invoke('generate-goal-content', {
+        body: {
+          title: newGoal.title,
+          description: newGoal.description,
+          goal_id: createdGoal.id
+        }
+      });
+
+      if (response.error) {
+        throw new Error(`Error generating content: ${response.error.message}`);
+      }
+
+      const { data: { tasks: generatedTasks, quizzes, goal_id } } = response;
+      
+      if (!goal_id || goal_id !== createdGoal.id) {
+        console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
+      }
+      
+      const taskPromises = generatedTasks.map(async (task, i) => {
+        const taskData = {
+          title: task.title,
+          description: task.description,
+          article_content: task.article_content
+        };
+        
+        const createdTask = await createTask({
+          ...taskData,
+          goal_id: createdGoal.id
+        });
+        
+        if (createdTask && createdTask.id) {
+          const quiz = quizzes.find(q => q.task_index === i);
+          if (quiz) {
+            const { error: quizError } = await supabase
+              .from('quizzes')
+              .insert([{
+                task_id: createdTask.id,
+                title: quiz.title,
+                questions: quiz.questions
+              }]);
+
+            if (quizError) {
+              console.error('Error creating quiz:', quizError);
+            }
+          }
+          return createdTask;
+        }
+        return null;
+      });
+      
+      await Promise.all(taskPromises);
+      
+      // Refresh tasks to ensure UI is updated with the newly created tasks
+      fetchTasks();
+
+      setNewGoal({ title: "", description: "", target_date: "" });
+      setOpenGoalDialog(false);
+      toast.success("Financial goal created with AI-generated tasks and quizzes!");
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -113,6 +195,68 @@ const Dashboard: React.FC = () => {
           
           <TabsContent value="goals" className="space-y-3 sm:space-y-6">
             <div className="bg-white/10 p-3 sm:p-6 rounded-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Financial Goals</h2>
+                <Dialog open={openGoalDialog} onOpenChange={setOpenGoalDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-1">
+                      <Plus size={18} />
+                      New Goal
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create a New Financial Goal</DialogTitle>
+                      <DialogDescription>
+                        Define a financial goal you want to achieve. Tasks and quizzes will be automatically generated to help you reach your goal.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <label htmlFor="title" className="text-sm font-medium">Goal Title</label>
+                        <Input
+                          id="title"
+                          placeholder="e.g., Save for retirement"
+                          value={newGoal.title}
+                          onChange={(e) => setNewGoal({...newGoal, title: e.target.value})}
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <label htmlFor="description" className="text-sm font-medium">Description</label>
+                        <Input
+                          id="description"
+                          placeholder="Briefly describe your goal"
+                          value={newGoal.description}
+                          onChange={(e) => setNewGoal({...newGoal, description: e.target.value})}
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <label htmlFor="target_date" className="text-sm font-medium">Target Date</label>
+                        <Input
+                          id="target_date"
+                          type="date"
+                          value={newGoal.target_date}
+                          onChange={(e) => setNewGoal({...newGoal, target_date: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        onClick={handleCreateGoal}
+                        disabled={isCreating}
+                      >
+                        {isCreating ? 'Creating...' : 'Create Goal'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
               <GoalList
                 goals={goals}
                 expandedGoalId={expandedGoalId}
@@ -123,15 +267,6 @@ const Dashboard: React.FC = () => {
                 isTasksLoading={isTasksLoading}
                 onUpdateTaskStatus={updateTaskStatus}
               />
-              
-              <div className="mt-3 sm:mt-6">
-                <Link to="/goals">
-                  <Button className="flex items-center gap-2 text-xs sm:text-sm h-8 sm:h-10">
-                    <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>Manage Financial Goals</span>
-                  </Button>
-                </Link>
-              </div>
             </div>
           </TabsContent>
           
