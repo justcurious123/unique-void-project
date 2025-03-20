@@ -5,15 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Home, MessageSquare, User, Flag } from "lucide-react";
+import { MessageSquare, User, Flag } from "lucide-react";
 import FinancialChat from "@/components/FinancialChat";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { GoalList } from "@/components/GoalList";
+import { useGoals } from "@/hooks/useGoals";
+import { useTasks } from "@/hooks/useTasks";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("goals");
   const isMobile = useIsMobile();
+  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
+  const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
+
+  const { goals, deleteGoal } = useGoals();
+  const { tasks, isLoading: isTasksLoading, fetchTasks, updateTaskStatus } = useTasks(expandedGoalId || "");
 
   // Check if user is authenticated
   useEffect(() => {
@@ -31,6 +39,40 @@ const Dashboard: React.FC = () => {
 
     checkUser();
   }, [navigate, toast]);
+
+  // Cache tasks for expanded goal
+  useEffect(() => {
+    if (expandedGoalId && tasks.length > 0) {
+      setGoalTasksCache(prev => ({
+        ...prev,
+        [expandedGoalId]: tasks
+      }));
+    }
+  }, [expandedGoalId, tasks]);
+
+  const toggleGoalExpand = async (goalId: string) => {
+    if (expandedGoalId === goalId) {
+      setExpandedGoalId(null);
+    } else {
+      setExpandedGoalId(goalId);
+    }
+  };
+
+  const calculateGoalProgress = (goalId: string) => {
+    // First check if we have cached tasks for this goal
+    const cachedTasks = goalTasksCache[goalId] || [];
+    
+    // If we have the goal expanded and tasks loaded, use current tasks
+    const goalTasks = expandedGoalId === goalId ? tasks : cachedTasks;
+    
+    // If we don't have any tasks yet for this goal
+    if (goalTasks.length === 0) {
+      return 0;
+    }
+    
+    const completedTasks = goalTasks.filter(task => task.completed).length;
+    return Math.round((completedTasks / goalTasks.length) * 100);
+  };
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -53,16 +95,11 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-pattern py-1 sm:py-8 px-1 sm:px-6">
       <div className="max-w-4xl mx-auto glass-card p-2 sm:p-6 rounded-2xl">
-        <div className="mb-2 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-          <p className="text-base sm:text-lg text-muted-foreground">Welcome to your personal dashboard!</p>
-        </div>
-        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6">
-            <TabsTrigger value="home" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-4">
-              <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className={isMobile ? "text-xs" : ""}>Home</span>
+            <TabsTrigger value="goals" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-4">
+              <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className={isMobile ? "text-xs" : ""}>Goals</span>
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-4">
               <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -74,26 +111,24 @@ const Dashboard: React.FC = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="home" className="space-y-3 sm:space-y-6">
+          <TabsContent value="goals" className="space-y-3 sm:space-y-6">
             <div className="bg-white/10 p-3 sm:p-6 rounded-lg">
-              <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">Welcome Home</h2>
-              <p className="mb-2 sm:mb-4 text-sm sm:text-base">This is your dashboard home. You can access all your important information from here.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
-                <div className="bg-white/5 p-3 sm:p-4 rounded-md">
-                  <h3 className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">Quick Stats</h3>
-                  <p className="text-xs sm:text-sm">Your account information and statistics will appear here.</p>
-                </div>
-                <div className="bg-white/5 p-3 sm:p-4 rounded-md">
-                  <h3 className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">Recent Activity</h3>
-                  <p className="text-xs sm:text-sm">Your recent activities will be displayed here.</p>
-                </div>
-              </div>
+              <GoalList
+                goals={goals}
+                expandedGoalId={expandedGoalId}
+                onExpandGoal={toggleGoalExpand}
+                onDeleteGoal={deleteGoal}
+                calculateProgress={calculateGoalProgress}
+                tasks={tasks}
+                isTasksLoading={isTasksLoading}
+                onUpdateTaskStatus={updateTaskStatus}
+              />
               
               <div className="mt-3 sm:mt-6">
                 <Link to="/goals">
                   <Button className="flex items-center gap-2 text-xs sm:text-sm h-8 sm:h-10">
                     <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>View Your Financial Goals</span>
+                    <span>Manage Financial Goals</span>
                   </Button>
                 </Link>
               </div>
