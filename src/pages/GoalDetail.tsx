@@ -24,6 +24,7 @@ const GoalDetail = () => {
   const { tasks, isLoading: tasksLoading, updateTaskStatus } = useTasks(goalId || '');
   const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
+  const [initialOrderSet, setInitialOrderSet] = useState(false);
 
   const toggleArticleExpansion = (taskId: string) => {
     setExpandedArticles(prev => ({
@@ -56,14 +57,41 @@ const GoalDetail = () => {
     fetchGoalDetails();
   }, [goalId, navigate]);
 
-  // Initialize taskOrder when tasks are loaded
+  // Initialize taskOrder when tasks are loaded, but only once
   useEffect(() => {
-    if (!tasksLoading && tasks.length > 0 && taskOrder.length === 0) {
+    if (!tasksLoading && tasks.length > 0 && !initialOrderSet) {
       // Create initial task order based on original order from the API
       const initialOrder = tasks.map(task => task.id);
+      console.log('Setting initial task order:', initialOrder);
       setTaskOrder(initialOrder);
+      setInitialOrderSet(true);
     }
-  }, [tasks, tasksLoading, taskOrder.length]);
+  }, [tasks, tasksLoading, initialOrderSet]);
+
+  // Persist task order between page navigations
+  useEffect(() => {
+    if (goalId && initialOrderSet) {
+      // Store task order in sessionStorage to persist between navigations
+      sessionStorage.setItem(`taskOrder-${goalId}`, JSON.stringify(taskOrder));
+    }
+  }, [taskOrder, goalId, initialOrderSet]);
+
+  // Retrieve task order from sessionStorage on component mount
+  useEffect(() => {
+    if (goalId) {
+      const savedOrder = sessionStorage.getItem(`taskOrder-${goalId}`);
+      if (savedOrder) {
+        try {
+          const parsedOrder = JSON.parse(savedOrder);
+          console.log('Retrieved saved task order:', parsedOrder);
+          setTaskOrder(parsedOrder);
+          setInitialOrderSet(true);
+        } catch (error) {
+          console.error('Error parsing saved task order:', error);
+        }
+      }
+    }
+  }, [goalId]);
 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 0;
