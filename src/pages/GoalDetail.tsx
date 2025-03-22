@@ -76,7 +76,7 @@ const GoalDetail = () => {
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
           </Button>
-          <p className="text-center py-10">Goal not found</p>
+          <p className="text-center py-10 text-base md:text-lg">Goal not found</p>
         </div>
       </div>
     );
@@ -87,7 +87,7 @@ const GoalDetail = () => {
   return (
     <div className="min-h-screen bg-pattern py-2 sm:py-8 px-2 sm:px-6">
       <div className="max-w-4xl mx-auto glass-card p-3 sm:p-6 rounded-2xl">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-3 sm:mb-6 h-8 sm:h-10">
+        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-3 sm:mb-6 h-8 sm:h-10 text-sm sm:text-base">
           <ArrowLeft className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" /> Back to Dashboard
         </Button>
         
@@ -95,27 +95,27 @@ const GoalDetail = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               {goalData.completed && <CheckCircle className="h-5 w-5 text-green-500" />}
-              <CardTitle>{goalData.title}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">{goalData.title}</CardTitle>
             </div>
-            <CardDescription>{goalData.description}</CardDescription>
+            <CardDescription className="text-base sm:text-lg mt-1">{goalData.description}</CardDescription>
           </CardHeader>
           
           <CardContent>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Overall Progress</span>
-              <span className="text-sm">{progressValue}%</span>
+              <span className="text-base sm:text-lg font-medium">Overall Progress</span>
+              <span className="text-base sm:text-lg">{progressValue}%</span>
             </div>
-            <Progress value={progressValue} className="h-2 mb-6" />
+            <Progress value={progressValue} className="h-3 mb-6" />
             
             {goalData.task_summary && (
               <div className="bg-muted/30 p-4 rounded-md mb-6">
-                <h3 className="text-sm font-medium mb-2">Goal Summary</h3>
-                <p className="text-sm text-muted-foreground">{goalData.task_summary}</p>
+                <h3 className="text-base sm:text-lg font-medium mb-2">Goal Summary</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">{goalData.task_summary}</p>
               </div>
             )}
             
             <div className="space-y-2">
-              <h3 className="text-sm font-medium mb-3">Tasks</h3>
+              <h3 className="text-base sm:text-lg font-medium mb-3">Tasks</h3>
               
               {tasksLoading ? (
                 <div className="py-8 flex justify-center">
@@ -129,9 +129,9 @@ const GoalDetail = () => {
                   />
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {tasks.map((task) => (
-                    <div key={task.id} className="flex items-start gap-3 p-3 rounded-md border">
+                    <div key={task.id} className="flex items-start gap-3 p-4 rounded-md border">
                       <Checkbox 
                         id={`task-${task.id}`} 
                         checked={task.completed}
@@ -140,24 +140,24 @@ const GoalDetail = () => {
                             updateTaskStatus(task.id, checked);
                           }
                         }}
-                        className="mt-0.5"
+                        className="mt-1"
                       />
-                      <div className="flex-1 space-y-1">
+                      <div className="flex-1 space-y-2">
                         <label 
                           htmlFor={`task-${task.id}`}
                           className={cn(
-                            "font-medium cursor-pointer text-sm",
+                            "font-medium cursor-pointer text-base sm:text-lg",
                             task.completed && "line-through text-muted-foreground"
                           )}
                         >
                           {task.title}
                         </label>
                         {task.description && (
-                          <p className="text-xs text-muted-foreground">{task.description}</p>
+                          <p className="text-sm sm:text-base text-muted-foreground">{task.description}</p>
                         )}
                         {task.article_content && (
-                          <div className="mt-2 bg-muted/20 p-3 rounded-md">
-                            <h4 className="text-xs font-medium mb-1">Learning Resources</h4>
+                          <div className="mt-3 bg-muted/20 p-4 rounded-md">
+                            <h4 className="text-sm sm:text-base font-medium mb-2">Learning Resources</h4>
                             
                             {/* Collapsible article content */}
                             <Collapsible
@@ -165,9 +165,9 @@ const GoalDetail = () => {
                               onOpenChange={() => toggleArticleExpansion(task.id)}
                               className="w-full"
                             >
-                              <div className="flex flex-col space-y-1.5">
+                              <div className="flex flex-col space-y-2">
                                 <p className={cn(
-                                  "text-xs",
+                                  "text-sm sm:text-base",
                                   !expandedArticles[task.id] && "line-clamp-3"
                                 )}>
                                   {task.article_content}
@@ -176,7 +176,7 @@ const GoalDetail = () => {
                                   <Button 
                                     variant="ghost" 
                                     size="sm" 
-                                    className="self-start h-6 text-xs mt-1 px-2"
+                                    className="self-start h-7 sm:h-8 text-xs sm:text-sm mt-1 px-2"
                                   >
                                     {expandedArticles[task.id] ? (
                                       <><ChevronUp className="h-3 w-3 mr-1" /> Show Less</>
@@ -192,7 +192,7 @@ const GoalDetail = () => {
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className="mt-2 h-7 text-xs"
+                              className="mt-2 h-8 text-sm"
                               onClick={() => setActiveQuizTaskId(task.id)}
                             >
                               <BookOpen className="h-3 w-3 mr-1" /> Take Quiz
