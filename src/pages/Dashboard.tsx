@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: "", description: "", target_date: "" });
 
-  const { goals, createGoal, deleteGoal } = useGoals();
+  const { goals, createGoal, deleteGoal, refreshGoals } = useGoals();
   const { tasks, isLoading: isTasksLoading, fetchTasks, updateTaskStatus, createTask } = useTasks(expandedGoalId || "");
 
   useEffect(() => {
@@ -181,6 +181,13 @@ const Dashboard: React.FC = () => {
           
         if (updateError) {
           console.error('Error updating goal with task summary:', updateError);
+        } else {
+          // Update the local goals state with the task summary so it shows immediately
+          const updatedGoals = goals.map(g => 
+            g.id === createdGoal.id ? { ...g, task_summary: taskSummary } : g
+          );
+          // Force refresh of goals to update the UI
+          refreshGoals();
         }
       }
       
