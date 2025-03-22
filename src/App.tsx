@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
@@ -20,7 +21,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-      <Toaster position="top-right" />
+      <Toaster />
     </BrowserRouter>
   );
 }
