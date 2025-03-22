@@ -7,11 +7,12 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useTasks } from '@/hooks/useTasks';
-import { ArrowLeft, CheckCircle, Loader2, BookOpen } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskQuiz from '@/components/TaskQuiz';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const GoalDetail = () => {
   const { goalId } = useParams();
@@ -21,6 +22,14 @@ const GoalDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
   const { tasks, isLoading: tasksLoading, updateTaskStatus } = useTasks(goalId || '');
+  const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
+
+  const toggleArticleExpansion = (taskId: string) => {
+    setExpandedArticles(prev => ({
+      ...prev,
+      [taskId]: !prev[taskId]
+    }));
+  };
 
   useEffect(() => {
     const fetchGoalDetails = async () => {
@@ -149,7 +158,37 @@ const GoalDetail = () => {
                         {task.article_content && (
                           <div className="mt-2 bg-muted/20 p-3 rounded-md">
                             <h4 className="text-xs font-medium mb-1">Learning Resources</h4>
-                            <p className="text-xs line-clamp-3">{task.article_content}</p>
+                            
+                            {/* Collapsible article content */}
+                            <Collapsible
+                              open={expandedArticles[task.id]}
+                              onOpenChange={() => toggleArticleExpansion(task.id)}
+                              className="w-full"
+                            >
+                              <div className="flex flex-col space-y-1.5">
+                                <p className={cn(
+                                  "text-xs",
+                                  !expandedArticles[task.id] && "line-clamp-3"
+                                )}>
+                                  {task.article_content}
+                                </p>
+                                <CollapsibleTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="self-start h-6 text-xs mt-1 px-2"
+                                  >
+                                    {expandedArticles[task.id] ? (
+                                      <><ChevronUp className="h-3 w-3 mr-1" /> Show Less</>
+                                    ) : (
+                                      <><ChevronDown className="h-3 w-3 mr-1" /> Read More</>
+                                    )}
+                                  </Button>
+                                </CollapsibleTrigger>
+                              </div>
+                              <CollapsibleContent className="pt-1" />
+                            </Collapsible>
+                            
                             <Button 
                               variant="ghost" 
                               size="sm" 
