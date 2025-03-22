@@ -31,7 +31,8 @@ serve(async (req) => {
     
     const taskData = tasks.map(t => ({
       title: t.title,
-      description: t.description
+      description: t.description,
+      article_content: t.article_content
     }))
 
     // Generate summary
