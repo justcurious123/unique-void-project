@@ -1,16 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, BookOpen, ExternalLink } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Checkbox } from "@/components/ui/checkbox";
-import TaskQuiz from './TaskQuiz';
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 
 interface GoalListProps {
@@ -35,8 +32,17 @@ export const GoalList: React.FC<GoalListProps> = ({
   onUpdateTaskStatus
 }) => {
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const [progressValues, setProgressValues] = useState<Record<string, number>>({});
+
+  // Calculate progress for all goals when the component mounts or goals change
+  useEffect(() => {
+    const newProgressValues: Record<string, number> = {};
+    goals.forEach(goal => {
+      newProgressValues[goal.id] = calculateProgress(goal.id);
+    });
+    setProgressValues(newProgressValues);
+  }, [goals, calculateProgress, tasks]);
 
   if (goals.length === 0) {
     return (
@@ -59,8 +65,8 @@ export const GoalList: React.FC<GoalListProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
       {goals.map((goal) => {
-        // Calculate progress once for each goal to ensure consistency
-        const progressValue = calculateProgress(goal.id);
+        // Get the cached progress value for consistent rendering
+        const progressValue = progressValues[goal.id] || 0;
         
         return (
           <Collapsible
@@ -147,4 +153,3 @@ export const GoalList: React.FC<GoalListProps> = ({
     </div>
   );
 };
-
