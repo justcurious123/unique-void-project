@@ -61,6 +61,14 @@ const GoalDetail = () => {
     return Math.round((completedTasks / tasks.length) * 100);
   };
 
+  const handleTaskStatusChange = async (taskId: string, checked: boolean) => {
+    await updateTaskStatus(taskId, checked);
+  };
+
+  // Separate tasks into active and completed
+  const activeTasks = tasks.filter(task => !task.completed);
+  const completedTasks = tasks.filter(task => task.completed);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-pattern py-6 px-4 flex justify-center items-center">
@@ -83,6 +91,80 @@ const GoalDetail = () => {
   }
 
   const progressValue = calculateProgress();
+
+  // Render a task with its details
+  const renderTask = (task: any) => (
+    <div key={task.id} className="flex items-start gap-3 p-4 rounded-md border">
+      <Checkbox 
+        id={`task-${task.id}`} 
+        checked={task.completed}
+        onCheckedChange={(checked) => {
+          if (typeof checked === 'boolean') {
+            handleTaskStatusChange(task.id, checked);
+          }
+        }}
+        className="mt-1"
+      />
+      <div className="flex-1 space-y-2">
+        <label 
+          htmlFor={`task-${task.id}`}
+          className={cn(
+            "font-medium cursor-pointer text-base sm:text-lg",
+            task.completed && "line-through text-muted-foreground"
+          )}
+        >
+          {task.title}
+        </label>
+        {task.description && (
+          <p className="text-sm sm:text-base text-muted-foreground">{task.description}</p>
+        )}
+        {task.article_content && (
+          <div className="mt-3 bg-muted/20 p-4 rounded-md">
+            <h4 className="text-sm sm:text-base font-medium mb-2">Learning Resources</h4>
+            
+            {/* Collapsible article content */}
+            <Collapsible
+              open={expandedArticles[task.id]}
+              onOpenChange={() => toggleArticleExpansion(task.id)}
+              className="w-full"
+            >
+              <div className="flex flex-col space-y-2">
+                <p className={cn(
+                  "text-sm sm:text-base",
+                  !expandedArticles[task.id] && "line-clamp-3"
+                )}>
+                  {task.article_content}
+                </p>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="self-start h-7 sm:h-8 text-xs sm:text-sm mt-1 px-2"
+                  >
+                    {expandedArticles[task.id] ? (
+                      <><ChevronUp className="h-3 w-3 mr-1" /> Show Less</>
+                    ) : (
+                      <><ChevronDown className="h-3 w-3 mr-1" /> Read More</>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="pt-1" />
+            </Collapsible>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mt-2 h-8 text-sm"
+              onClick={() => setActiveQuizTaskId(task.id)}
+            >
+              <BookOpen className="h-3 w-3 mr-1" /> Take Quiz
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-pattern py-2 sm:py-8 px-2 sm:px-6">
@@ -114,97 +196,45 @@ const GoalDetail = () => {
               </div>
             )}
             
-            <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-medium mb-3">Tasks</h3>
-              
-              {tasksLoading ? (
-                <div className="py-8 flex justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : activeQuizTaskId ? (
-                <div className="mt-4">
-                  <TaskQuiz 
-                    taskId={activeQuizTaskId} 
-                    onClose={() => setActiveQuizTaskId(null)} 
-                  />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {tasks.map((task) => (
-                    <div key={task.id} className="flex items-start gap-3 p-4 rounded-md border">
-                      <Checkbox 
-                        id={`task-${task.id}`} 
-                        checked={task.completed}
-                        onCheckedChange={(checked) => {
-                          if (typeof checked === 'boolean') {
-                            updateTaskStatus(task.id, checked);
-                          }
-                        }}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <label 
-                          htmlFor={`task-${task.id}`}
-                          className={cn(
-                            "font-medium cursor-pointer text-base sm:text-lg",
-                            task.completed && "line-through text-muted-foreground"
-                          )}
-                        >
-                          {task.title}
-                        </label>
-                        {task.description && (
-                          <p className="text-sm sm:text-base text-muted-foreground">{task.description}</p>
-                        )}
-                        {task.article_content && (
-                          <div className="mt-3 bg-muted/20 p-4 rounded-md">
-                            <h4 className="text-sm sm:text-base font-medium mb-2">Learning Resources</h4>
-                            
-                            {/* Collapsible article content */}
-                            <Collapsible
-                              open={expandedArticles[task.id]}
-                              onOpenChange={() => toggleArticleExpansion(task.id)}
-                              className="w-full"
-                            >
-                              <div className="flex flex-col space-y-2">
-                                <p className={cn(
-                                  "text-sm sm:text-base",
-                                  !expandedArticles[task.id] && "line-clamp-3"
-                                )}>
-                                  {task.article_content}
-                                </p>
-                                <CollapsibleTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="self-start h-7 sm:h-8 text-xs sm:text-sm mt-1 px-2"
-                                  >
-                                    {expandedArticles[task.id] ? (
-                                      <><ChevronUp className="h-3 w-3 mr-1" /> Show Less</>
-                                    ) : (
-                                      <><ChevronDown className="h-3 w-3 mr-1" /> Read More</>
-                                    )}
-                                  </Button>
-                                </CollapsibleTrigger>
-                              </div>
-                              <CollapsibleContent className="pt-1" />
-                            </Collapsible>
-                            
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="mt-2 h-8 text-sm"
-                              onClick={() => setActiveQuizTaskId(task.id)}
-                            >
-                              <BookOpen className="h-3 w-3 mr-1" /> Take Quiz
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+            {activeQuizTaskId ? (
+              <div className="mt-4">
+                <TaskQuiz 
+                  taskId={activeQuizTaskId} 
+                  onClose={() => setActiveQuizTaskId(null)} 
+                />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Active Tasks Section */}
+                <div>
+                  <h3 className="text-lg sm:text-xl font-medium mb-3">Tasks</h3>
+                  
+                  {tasksLoading ? (
+                    <div className="py-8 flex justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                  ))}
+                  ) : activeTasks.length > 0 ? (
+                    <div className="space-y-4">
+                      {activeTasks.map(renderTask)}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-base sm:text-lg italic py-4">All tasks completed!</p>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                {/* Completed Tasks Section */}
+                {completedTasks.length > 0 && (
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-medium mb-3 text-green-600">
+                      Completed Tasks ({completedTasks.length})
+                    </h3>
+                    <div className="space-y-4">
+                      {completedTasks.map(renderTask)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
