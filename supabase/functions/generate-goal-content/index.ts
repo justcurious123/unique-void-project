@@ -78,7 +78,7 @@ serve(async (req) => {
       throw new Error('Goal ID is required')
     }
 
-    // Generate tasks
+    // Generate tasks with improved ordering instructions
     console.log('Generating tasks for goal:', title, 'with ID:', goal_id)
     const tasksResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -91,11 +91,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a financial advisor helping to break down financial goals into actionable tasks. Each task should include educational content to help users understand the concepts involved.'
+            content: 'You are a financial advisor helping to break down financial goals into actionable tasks. Each task should include educational content to help users understand the concepts involved. IMPORTANT: Order the tasks in a logical sequence that follows a chronological timeline and proper learning progression. Tasks that need to be completed first should come first. For example, research tasks and planning should come before implementation tasks. Basic concepts should be introduced before advanced concepts.'
           },
           {
             role: 'user',
-            content: `Generate 3-5 tasks for this financial goal:\nTitle: ${title}\nDescription: ${description}`
+            content: `Generate 3-5 tasks for this financial goal:\nTitle: ${title}\nDescription: ${description}\n\nIMPORTANT: Arrange tasks in logical order where preliminary tasks come first and tasks that depend on other tasks come later. For example, in an investment goal, learning about investment options should come before selecting investments, and evaluating performance should come last.`
           }
         ],
         functions: [generateTasksFunction],
