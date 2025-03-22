@@ -7,9 +7,10 @@ export interface Goal {
   title: string;
   description: string | null;
   target_date: string | null;
-  created_at: string;
-  user_id: string;
   completed: boolean;
+  user_id: string;
+  created_at: string;
+  task_summary?: string;
 }
 
 export interface NewGoal {
@@ -45,34 +46,39 @@ export const useGoals = () => {
     }
   };
 
-  const createGoal = async (newGoal: NewGoal): Promise<Goal | null> => {
+  const createGoal = async (newGoal: { title: string; description: string; target_date: string }) => {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        toast.error("Please log in to create goals");
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session.session) {
+        toast.error("You must be logged in to create goals");
         return null;
       }
-
+      
+      const userId = session.session.user.id;
+      
       const { data, error } = await supabase
         .from('goals')
         .insert([
           { 
-            ...newGoal,
-            completed: false,
-            user_id: session.session.user.id
+            title: newGoal.title,
+            description: newGoal.description,
+            target_date: newGoal.target_date,
+            user_id: userId,
+            completed: false
           }
         ])
         .select();
         
       if (error) throw error;
       
-      if (data && data.length > 0) {
+      if (data) {
         setGoals([...goals, ...data]);
-        toast.success("Financial goal created successfully!");
-        return data[0] as Goal;
+        return data[0];
       }
       return null;
     } catch (error: any) {
+      console.error('Error creating goal:', error.message);
       toast.error(`Error creating goal: ${error.message}`);
       return null;
     }

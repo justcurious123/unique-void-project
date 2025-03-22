@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, BookOpen } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, BookOpen, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 import TaskQuiz from './TaskQuiz';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 
 interface GoalListProps {
   goals: Goal[];
@@ -35,6 +36,7 @@ export const GoalList: React.FC<GoalListProps> = ({
 }) => {
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   if (goals.length === 0) {
     return (
@@ -49,6 +51,10 @@ export const GoalList: React.FC<GoalListProps> = ({
       </Card>
     );
   }
+
+  const handleGoalTitleClick = (goalId: string) => {
+    navigate(`/goal/${goalId}`);
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -65,10 +71,11 @@ export const GoalList: React.FC<GoalListProps> = ({
             <Card className={goal.completed ? "border-green-200 bg-green-50/30" : ""}>
               <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg">
+                  <div onClick={() => handleGoalTitleClick(goal.id)} className="cursor-pointer">
+                    <CardTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg group">
                       {goal.completed && <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />}
-                      {goal.title}
+                      <span>{goal.title}</span>
+                      <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </CardTitle>
                     <CardDescription className="mt-1 text-xs sm:text-sm">{goal.description}</CardDescription>
                   </div>
@@ -112,64 +119,23 @@ export const GoalList: React.FC<GoalListProps> = ({
                     <div className="py-4 sm:py-6 flex justify-center">
                       <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
                     </div>
-                  ) : tasks.length === 0 ? (
-                    <div className="py-3 sm:py-4 text-center text-xs sm:text-sm text-muted-foreground">
-                      No tasks created for this goal yet.
-                    </div>
-                  ) : activeQuizTaskId ? (
-                    <div className="mt-3 sm:mt-4">
-                      <TaskQuiz 
-                        taskId={activeQuizTaskId} 
-                        onClose={() => setActiveQuizTaskId(null)} 
-                      />
-                    </div>
                   ) : (
-                    <div className="space-y-3 sm:space-y-4">
-                      <h3 className="font-medium text-sm sm:text-base">Tasks</h3>
-                      <div className="space-y-1.5 sm:space-y-2">
-                        {tasks.map((task) => (
-                          <div key={task.id} className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-md border">
-                            <Checkbox 
-                              id={`task-${task.id}`} 
-                              checked={task.completed}
-                              onCheckedChange={(checked) => {
-                                if (typeof checked === 'boolean') {
-                                  onUpdateTaskStatus(task.id, checked);
-                                }
-                              }}
-                              className="mt-0.5"
-                            />
-                            <div className="flex-1 space-y-0.5 sm:space-y-1">
-                              <label 
-                                htmlFor={`task-${task.id}`}
-                                className={cn(
-                                  "font-medium cursor-pointer text-xs sm:text-sm",
-                                  task.completed && "line-through text-muted-foreground"
-                                )}
-                              >
-                                {task.title}
-                              </label>
-                              {task.description && (
-                                <p className="text-xs text-muted-foreground">{task.description}</p>
-                              )}
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="flex items-center gap-1 h-7 text-xs"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setActiveQuizTaskId(task.id);
-                              }}
-                              type="button"
-                            >
-                              <BookOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                              <span className={isMobile ? "sr-only" : ""}>Quiz</span>
-                            </Button>
-                          </div>
-                        ))}
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        {goal.task_summary ? (
+                          <p>{goal.task_summary}</p>
+                        ) : (
+                          <p>This goal has {tasks.length} tasks. Click on the goal title to view and manage all tasks.</p>
+                        )}
                       </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full text-xs"
+                        onClick={() => handleGoalTitleClick(goal.id)}
+                      >
+                        View All Tasks <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
                     </div>
                   )}
                 </CardContent>
@@ -181,3 +147,4 @@ export const GoalList: React.FC<GoalListProps> = ({
     </div>
   );
 };
+

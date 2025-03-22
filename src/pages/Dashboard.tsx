@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,6 @@ const Dashboard: React.FC = () => {
   const { goals, createGoal, deleteGoal } = useGoals();
   const { tasks, isLoading: isTasksLoading, fetchTasks, updateTaskStatus, createTask } = useTasks(expandedGoalId || "");
 
-  // Check if user is authenticated
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
@@ -46,7 +44,6 @@ const Dashboard: React.FC = () => {
     checkUser();
   }, [navigate, toastUI]);
 
-  // Cache tasks for expanded goal
   useEffect(() => {
     if (expandedGoalId && tasks.length > 0) {
       setGoalTasksCache(prev => ({
@@ -65,17 +62,11 @@ const Dashboard: React.FC = () => {
   };
 
   const calculateGoalProgress = (goalId: string) => {
-    // First check if we have cached tasks for this goal
     const cachedTasks = goalTasksCache[goalId] || [];
-    
-    // If we have the goal expanded and tasks loaded, use current tasks
     const goalTasks = expandedGoalId === goalId ? tasks : cachedTasks;
-    
-    // If we don't have any tasks yet for this goal
     if (goalTasks.length === 0) {
       return 0;
     }
-    
     const completedTasks = goalTasks.filter(task => task.completed).length;
     return Math.round((completedTasks / goalTasks.length) * 100);
   };
@@ -96,6 +87,26 @@ const Dashboard: React.FC = () => {
       description: "You have been logged out",
     });
     navigate("/");
+  };
+
+  const generateTaskSummary = async (tasks: any[]) => {
+    try {
+      if (!tasks || tasks.length === 0) return "";
+      
+      const taskTitles = tasks.map(t => t.title).join(", ");
+      const response = await supabase.functions.invoke('generate-task-summary', {
+        body: { tasks }
+      });
+      
+      if (response.error) {
+        throw new Error(`Error generating summary: ${response.error.message}`);
+      }
+      
+      return response.data?.summary || `Includes tasks: ${taskTitles}`;
+    } catch (error) {
+      console.error("Error generating task summary:", error);
+      return "";
+    }
   };
 
   const handleCreateGoal = async () => {
@@ -159,9 +170,20 @@ const Dashboard: React.FC = () => {
         return null;
       });
       
-      await Promise.all(taskPromises);
+      const createdTasks = (await Promise.all(taskPromises)).filter(Boolean);
       
-      // Refresh tasks to ensure UI is updated with the newly created tasks
+      const taskSummary = await generateTaskSummary(createdTasks);
+      if (taskSummary) {
+        const { error: updateError } = await supabase
+          .from('goals')
+          .update({ task_summary: taskSummary })
+          .eq('id', createdGoal.id);
+          
+        if (updateError) {
+          console.error('Error updating goal with task summary:', updateError);
+        }
+      }
+      
       fetchTasks();
 
       setNewGoal({ title: "", description: "", target_date: "" });
