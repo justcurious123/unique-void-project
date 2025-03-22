@@ -72,6 +72,7 @@ export type Database = {
           description: string | null
           id: string
           target_date: string | null
+          task_summary: string | null
           title: string
           user_id: string
         }
@@ -81,6 +82,7 @@ export type Database = {
           description?: string | null
           id?: string
           target_date?: string | null
+          task_summary?: string | null
           title: string
           user_id: string
         }
@@ -90,6 +92,7 @@ export type Database = {
           description?: string | null
           id?: string
           target_date?: string | null
+          task_summary?: string | null
           title?: string
           user_id?: string
         }
