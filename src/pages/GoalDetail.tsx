@@ -23,6 +23,7 @@ const GoalDetail = () => {
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
   const { tasks, isLoading: tasksLoading, updateTaskStatus } = useTasks(goalId || '');
   const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
+  const [taskOrder, setTaskOrder] = useState<string[]>([]);
 
   const toggleArticleExpansion = (taskId: string) => {
     setExpandedArticles(prev => ({
@@ -55,6 +56,15 @@ const GoalDetail = () => {
     fetchGoalDetails();
   }, [goalId, navigate]);
 
+  // Initialize taskOrder when tasks are loaded
+  useEffect(() => {
+    if (!tasksLoading && tasks.length > 0 && taskOrder.length === 0) {
+      // Create initial task order based on original order from the API
+      const initialOrder = tasks.map(task => task.id);
+      setTaskOrder(initialOrder);
+    }
+  }, [tasks, tasksLoading, taskOrder.length]);
+
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 0;
     const completedTasks = tasks.filter(task => task.completed).length;
@@ -65,9 +75,21 @@ const GoalDetail = () => {
     await updateTaskStatus(taskId, checked);
   };
 
-  // Separate tasks into active and completed
-  const activeTasks = tasks.filter(task => !task.completed);
-  const completedTasks = tasks.filter(task => task.completed);
+  // Use taskOrder to sort the tasks
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aIndex = taskOrder.indexOf(a.id);
+    const bIndex = taskOrder.indexOf(b.id);
+    
+    // If a task is not in the order array, place it at the end
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    
+    return aIndex - bIndex;
+  });
+
+  // Separate tasks into active and completed while maintaining their relative order
+  const activeTasks = sortedTasks.filter(task => !task.completed);
+  const completedTasks = sortedTasks.filter(task => task.completed);
 
   if (isLoading) {
     return (
