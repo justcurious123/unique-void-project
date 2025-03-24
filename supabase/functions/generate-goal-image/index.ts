@@ -40,8 +40,9 @@ serve(async (req) => {
 
     console.log(`Generating image for goal: "${goalTitle}" (ID: ${goalId})`);
     
-    // Create a prompt based on the goal title
-    const prompt = `A beautiful, inspirational image representing the financial goal: ${goalTitle}. Professional quality, vibrant colors, realistic, no text.`;
+    // Create a simplified and direct prompt based on the goal title
+    // Instead of mentioning financial goals, focus on the concrete object/concept
+    let prompt = `A beautiful, inspirational image of ${goalTitle}. Professional quality, vibrant colors, realistic, no text.`;
     
     console.log(`Using prompt: "${prompt}"`);
     
