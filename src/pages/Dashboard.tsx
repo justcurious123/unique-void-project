@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { MessageSquare, User, Flag, Plus } from "lucide-react";
+import { MessageSquare, User, Flag, Plus, Loader2 } from "lucide-react";
 import FinancialChat from "@/components/FinancialChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoalList } from "@/components/GoalList";
@@ -138,6 +138,25 @@ const Dashboard: React.FC = () => {
         console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
       }
       
+      toast.info("Generating goal image...");
+      try {
+        const imageResponse = await supabase.functions.invoke('generate-goal-image', {
+          body: {
+            goalTitle: newGoal.title,
+            goalId: createdGoal.id
+          }
+        });
+        
+        if (imageResponse.error) {
+          console.error("Error generating goal image:", imageResponse.error);
+          toast.error("Failed to generate goal image, but goal was created successfully");
+        } else {
+          console.log("Goal image generated:", imageResponse.data);
+        }
+      } catch (imageError) {
+        console.error("Error invoking image generation:", imageError);
+      }
+      
       const taskPromises = generatedTasks.map(async (task, i) => {
         const taskData = {
           title: task.title,
@@ -182,11 +201,9 @@ const Dashboard: React.FC = () => {
         if (updateError) {
           console.error('Error updating goal with task summary:', updateError);
         } else {
-          // Update the local goals state with the task summary so it shows immediately
           const updatedGoals = goals.map(g => 
             g.id === createdGoal.id ? { ...g, task_summary: taskSummary } : g
           );
-          // Force refresh of goals to update the UI
           refreshGoals();
         }
       }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ export const GoalList: React.FC<GoalListProps> = ({
   const navigate = useNavigate();
   const [progressValues, setProgressValues] = useState<Record<string, number>>({});
 
-  // Calculate progress for all goals when the component mounts or goals change
   useEffect(() => {
     const newProgressValues: Record<string, number> = {};
     goals.forEach(goal => {
@@ -65,7 +63,6 @@ export const GoalList: React.FC<GoalListProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
       {goals.map((goal) => {
-        // Get the cached progress value for consistent rendering
         const progressValue = progressValues[goal.id] || 0;
         
         return (
@@ -74,8 +71,25 @@ export const GoalList: React.FC<GoalListProps> = ({
             open={expandedGoalId === goal.id}
             onOpenChange={() => onExpandGoal(goal.id)}
           >
-            <Card className={goal.completed ? "border-green-200 bg-green-50/30" : ""}>
-              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5">
+            <Card className={cn(
+              goal.completed ? "border-green-200 bg-green-50/30" : "",
+              "overflow-hidden"
+            )}>
+              {goal.image_url && (
+                <div 
+                  className="relative w-full h-24 bg-cover bg-center" 
+                  style={{
+                    backgroundImage: `url(${goal.image_url})`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
+                </div>
+              )}
+              
+              <CardHeader className={cn(
+                "pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5",
+                goal.image_url ? "relative z-10 -mt-6" : ""
+              )}>
                 <div className="flex justify-between items-start">
                   <div onClick={() => handleGoalTitleClick(goal.id)} className="cursor-pointer">
                     <CardTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg group">

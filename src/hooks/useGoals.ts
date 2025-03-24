@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ export interface Goal {
   user_id: string;
   created_at: string;
   task_summary?: string;
+  image_url?: string;
 }
 
 export interface NewGoal {

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -57,10 +56,8 @@ const GoalDetail = () => {
     fetchGoalDetails();
   }, [goalId, navigate]);
 
-  // Initialize taskOrder when tasks are loaded, but only once
   useEffect(() => {
     if (!tasksLoading && tasks.length > 0 && !initialOrderSet) {
-      // Create initial task order based on original order from the API
       const initialOrder = tasks.map(task => task.id);
       console.log('Setting initial task order:', initialOrder);
       setTaskOrder(initialOrder);
@@ -68,15 +65,12 @@ const GoalDetail = () => {
     }
   }, [tasks, tasksLoading, initialOrderSet]);
 
-  // Persist task order between page navigations
   useEffect(() => {
     if (goalId && initialOrderSet) {
-      // Store task order in sessionStorage to persist between navigations
       sessionStorage.setItem(`taskOrder-${goalId}`, JSON.stringify(taskOrder));
     }
   }, [taskOrder, goalId, initialOrderSet]);
 
-  // Retrieve task order from sessionStorage on component mount
   useEffect(() => {
     if (goalId) {
       const savedOrder = sessionStorage.getItem(`taskOrder-${goalId}`);
@@ -103,19 +97,16 @@ const GoalDetail = () => {
     await updateTaskStatus(taskId, checked);
   };
 
-  // Use taskOrder to sort the tasks
   const sortedTasks = [...tasks].sort((a, b) => {
     const aIndex = taskOrder.indexOf(a.id);
     const bIndex = taskOrder.indexOf(b.id);
     
-    // If a task is not in the order array, place it at the end
     if (aIndex === -1) return 1;
     if (bIndex === -1) return -1;
     
     return aIndex - bIndex;
   });
 
-  // Separate tasks into active and completed while maintaining their relative order
   const activeTasks = sortedTasks.filter(task => !task.completed);
   const completedTasks = sortedTasks.filter(task => task.completed);
 
@@ -142,7 +133,6 @@ const GoalDetail = () => {
 
   const progressValue = calculateProgress();
 
-  // Render a task with its details
   const renderTask = (task: any) => (
     <div key={task.id} className="flex items-start gap-3 p-4 rounded-md border">
       <Checkbox 
@@ -172,7 +162,6 @@ const GoalDetail = () => {
           <div className="mt-3 bg-muted/20 p-4 rounded-md">
             <h4 className="text-sm sm:text-base font-medium mb-2">Learning Resources</h4>
             
-            {/* Collapsible article content */}
             <Collapsible
               open={expandedArticles[task.id]}
               onOpenChange={() => toggleArticleExpansion(task.id)}
@@ -218,78 +207,54 @@ const GoalDetail = () => {
 
   return (
     <div className="min-h-screen bg-pattern py-2 sm:py-8 px-2 sm:px-6">
-      <div className="max-w-4xl mx-auto glass-card p-3 sm:p-6 rounded-2xl">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-3 sm:mb-6 h-8 sm:h-10 text-sm sm:text-base">
-          <ArrowLeft className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" /> Back to Dashboard
-        </Button>
+      <div className="max-w-4xl mx-auto glass-card p-0 rounded-2xl overflow-hidden">
+        {goalData.image_url && (
+          <div className="relative">
+            <div 
+              className="w-full h-48 sm:h-64 bg-cover bg-center"
+              style={{ backgroundImage: `url(${goalData.image_url})` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
+            </div>
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard')} 
+              className="absolute top-3 left-3 h-8 sm:h-10 text-sm sm:text-base bg-white/50 backdrop-blur-sm"
+            >
+              <ArrowLeft className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" /> Back to Dashboard
+            </Button>
+          </div>
+        )}
         
-        <Card className={goalData.completed ? "border-green-200 bg-green-50/30 mb-6" : "mb-6"}>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              {goalData.completed && <CheckCircle className="h-5 w-5 text-green-500" />}
-              <CardTitle className="text-xl sm:text-2xl">{goalData.title}</CardTitle>
-            </div>
-            <CardDescription className="text-base sm:text-lg mt-1">{goalData.description}</CardDescription>
-          </CardHeader>
+        <div className="p-3 sm:p-6">
+          {!goalData.image_url && (
+            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-3 sm:mb-6 h-8 sm:h-10 text-sm sm:text-base">
+              <ArrowLeft className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" /> Back to Dashboard
+            </Button>
+          )}
           
-          <CardContent>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-base sm:text-lg font-medium">Overall Progress</span>
-              <span className="text-base sm:text-lg">{progressValue}%</span>
-            </div>
-            <Progress value={progressValue} className="h-3 mb-6" />
-            
-            {goalData.task_summary && (
-              <div className="bg-muted/30 p-4 rounded-md mb-6">
-                <h3 className="text-base sm:text-lg font-medium mb-2">Goal Summary</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">{goalData.task_summary}</p>
+          <Card className={goalData.completed ? "border-green-200 bg-green-50/30 mb-6" : "mb-6"}>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                {goalData.completed && <CheckCircle className="h-5 w-5 text-green-500" />}
+                <CardTitle className="text-xl sm:text-2xl">{goalData.title}</CardTitle>
               </div>
-            )}
+              <CardDescription className="text-base sm:text-lg mt-1">{goalData.description}</CardDescription>
+            </CardHeader>
             
-            {activeQuizTaskId ? (
-              <div className="mt-4">
-                <TaskQuiz 
-                  taskId={activeQuizTaskId} 
-                  onClose={() => setActiveQuizTaskId(null)} 
-                />
+            <CardContent>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-base sm:text-lg font-medium">Overall Progress</span>
+                <span className="text-base sm:text-lg">{progressValue}%</span>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Active Tasks Section */}
-                <div>
-                  <h3 className="text-lg sm:text-xl font-medium mb-3">Tasks</h3>
-                  
-                  {tasksLoading ? (
-                    <div className="py-8 flex justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : activeTasks.length > 0 ? (
-                    <div className="space-y-4">
-                      {activeTasks.map(renderTask)}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-base sm:text-lg italic py-4">All tasks completed!</p>
-                  )}
+              <Progress value={progressValue} className="h-3 mb-6" />
+              
+              {goalData.task_summary && (
+                <div className="bg-muted/30 p-4 rounded-md mb-6">
+                  <h3 className="text-base sm:text-lg font-medium mb-2">Goal Summary</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">{goalData.task_summary}</p>
                 </div>
-                
-                {/* Completed Tasks Section */}
-                {completedTasks.length > 0 && (
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-medium mb-3 text-green-600">
-                      Completed Tasks ({completedTasks.length})
-                    </h3>
-                    <div className="space-y-4">
-                      {completedTasks.map(renderTask)}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-};
+              )}
+              
 
-export default GoalDetail;
+
