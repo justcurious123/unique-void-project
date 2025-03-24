@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -256,5 +257,45 @@ const GoalDetail = () => {
                 </div>
               )}
               
+              <div className="space-y-4">
+                <h3 className="text-base sm:text-lg font-medium">Tasks</h3>
+                {tasksLoading ? (
+                  <div className="py-8 flex justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <p className="text-center py-6 text-muted-foreground">No tasks found for this goal.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeTasks.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">In Progress</h4>
+                        {activeTasks.map(renderTask)}
+                      </div>
+                    )}
+                    
+                    {completedTasks.length > 0 && (
+                      <div className="space-y-3 mt-6">
+                        <h4 className="text-sm font-medium text-muted-foreground">Completed</h4>
+                        {completedTasks.map(renderTask)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {activeQuizTaskId && (
+            <TaskQuiz 
+              taskId={activeQuizTaskId} 
+              onClose={() => setActiveQuizTaskId(null)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
-
+export default GoalDetail;
