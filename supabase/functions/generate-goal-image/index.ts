@@ -17,8 +17,14 @@ serve(async (req) => {
 
   try {
     const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    
     if (!REPLICATE_API_KEY) {
       throw new Error('REPLICATE_API_KEY is not set');
+    }
+    
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not set');
     }
 
     const replicate = new Replicate({
@@ -40,17 +46,41 @@ serve(async (req) => {
 
     console.log(`Generating image for goal: "${goalTitle}" (ID: ${goalId})`);
     
-    // Create a simplified and direct prompt based on the goal title
-    // Instead of mentioning financial goals, focus on the concrete object/concept
-    let prompt = `A beautiful, inspirational image of ${goalTitle}. Professional quality, vibrant colors, realistic, no text.`;
+    // Generate a custom prompt using OpenAI
+    console.log("Generating custom prompt with OpenAI");
+    const promptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a prompt generator for an image generation AI. Create a short, descriptive prompt for an image that represents the given concept. Focus on the concrete object or concept, not the financial aspect. The prompt should be for a beautiful, inspirational image with professional quality, vibrant colors, and realism. Do not include text in the image. Just return the prompt, nothing else.'
+          },
+          {
+            role: 'user',
+            content: `Generate an image prompt for: ${goalTitle}`
+          }
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    const promptData = await promptResponse.json();
+    const imagePrompt = promptData.choices[0].message.content.trim();
     
-    console.log(`Using prompt: "${prompt}"`);
+    console.log(`Generated custom prompt: "${imagePrompt}"`);
     
+    // Use the custom prompt for image generation
     const output = await replicate.run(
       "black-forest-labs/flux-schnell",
       {
         input: {
-          prompt: prompt,
+          prompt: imagePrompt,
           go_fast: true,
           megapixels: "1",
           num_outputs: 1,
@@ -103,7 +133,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         output,
-        message: "Image generated and saved to goal record" 
+        message: "Image generated and saved to goal record",
+        prompt: imagePrompt
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }

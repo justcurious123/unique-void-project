@@ -152,6 +152,9 @@ const Dashboard: React.FC = () => {
           toast.error("Failed to generate goal image, but goal was created successfully");
         } else {
           console.log("Goal image generated:", imageResponse.data);
+          if (imageResponse.data?.prompt) {
+            console.log("Using custom prompt:", imageResponse.data.prompt);
+          }
         }
       } catch (imageError) {
         console.error("Error invoking image generation:", imageError);
