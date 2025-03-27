@@ -37,7 +37,7 @@ const Hero: React.FC = () => {
       
       <div ref={heroRef} className="relative max-w-5xl mx-auto text-center transition-all duration-1000 opacity-0 translate-y-4 pt-20">
         <div className="inline-block mb-6">
-          <img alt="WayToPoint Logo" className="h-48 md:h-64 mx-auto mb-4" src="/lovable-uploads/d00efb74-7bb7-4d86-9d48-9c3ad740ffdc.png" />
+          <img alt="WayToPoint Logo" src="/lovable-uploads/25ef78c0-6845-44e0-8fe7-7e3795460ac6.png" className="h-48 md:h-64 mx-auto mb-4 object-contain" />
         </div>
         
         

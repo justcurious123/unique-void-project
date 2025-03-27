@@ -6,7 +6,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-4">
             <Link to="/" className="flex items-center">
-              <img alt="WayToPoint Logo" className="h-8 mr-2" src="/lovable-uploads/19dbdc4d-6f26-4be2-95de-ffad330185cf.png" />
+              <img alt="WayToPoint Logo" className="h-8 mr-2" src="/lovable-uploads/8391d5e3-8af0-4054-8443-a805fa03a3df.png" />
               <span className="text-xl font-medium tracking-tight">WayToPoint</span>
             </Link>
             <p className="text-foreground/70 text-sm">
