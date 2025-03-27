@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Trash2, ChevronDown, CheckCircle, Loader2, ExternalLink, ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Goal } from "@/hooks/useGoals";
+import type { Goal } from "@/hooks/types/goalTypes";
 import type { Task } from "@/hooks/useTasks";
 import { CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";

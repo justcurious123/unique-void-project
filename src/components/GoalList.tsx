@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Flag } from "lucide-react";
-import type { Goal } from "@/hooks/useGoals";
+import type { Goal } from "@/hooks/types/goalTypes";
 import type { Task } from "@/hooks/useTasks";
 import GoalCard from "./GoalCard";
 import { useNavigate } from "react-router-dom";

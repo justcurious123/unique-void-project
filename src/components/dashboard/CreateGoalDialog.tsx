@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Goal } from "@/hooks/useGoals";
+import { Goal } from "@/hooks/types/goalTypes";
 import GoalForm from "./GoalForm";
 import { useGoalCreation } from "@/hooks/useGoalCreation";
 
