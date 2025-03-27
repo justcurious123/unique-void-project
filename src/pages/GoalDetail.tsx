@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useTasks } from '@/hooks/useTasks';
-import { ArrowLeft, CheckCircle, Loader2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, BookOpen, ChevronDown, ChevronUp, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskQuiz from '@/components/TaskQuiz';
 import { toast } from 'sonner';
@@ -25,12 +24,25 @@ const GoalDetail = () => {
   const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
   const [initialOrderSet, setInitialOrderSet] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageRetry, setImageRetry] = useState(0);
 
   const toggleArticleExpansion = (taskId: string) => {
     setExpandedArticles(prev => ({
       ...prev,
       [taskId]: !prev[taskId]
     }));
+  };
+
+  const handleImageError = () => {
+    console.log("Image failed to load in GoalDetail");
+    if (imageRetry < 2) {  // Limit retries
+      setImageRetry(prev => prev + 1);
+    } else {
+      setImageError(true);
+      setImageLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -45,6 +57,18 @@ const GoalDetail = () => {
           .single();
           
         if (error) throw error;
+        
+        if (data.image_url) {
+          setImageLoading(true);
+          // Preload image
+          const img = new Image();
+          img.onload = () => {
+            setImageLoading(false);
+          };
+          img.onerror = handleImageError;
+          img.src = `${data.image_url}?retry=${imageRetry}`;
+        }
+        
         setGoalData(data);
       } catch (error: any) {
         toast.error(`Error fetching goal details: ${error.message}`);
@@ -55,7 +79,7 @@ const GoalDetail = () => {
     };
     
     fetchGoalDetails();
-  }, [goalId, navigate]);
+  }, [goalId, navigate, imageRetry]);
 
   useEffect(() => {
     if (!tasksLoading && tasks.length > 0 && !initialOrderSet) {
@@ -133,6 +157,7 @@ const GoalDetail = () => {
   }
 
   const progressValue = calculateProgress();
+  const hasImage = goalData.image_url && !imageError;
 
   const renderTask = (task: any) => (
     <div key={task.id} className="flex items-start gap-3 p-4 rounded-md border">
@@ -209,14 +234,26 @@ const GoalDetail = () => {
   return (
     <div className="min-h-screen bg-pattern py-2 sm:py-8 px-2 sm:px-6">
       <div className="max-w-4xl mx-auto glass-card p-0 rounded-2xl overflow-hidden">
-        {goalData.image_url && (
+        {hasImage && (
           <div className="relative">
-            <div 
-              className="w-full h-48 sm:h-64 bg-cover bg-center"
-              style={{ backgroundImage: `url(${goalData.image_url})` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
-            </div>
+            {imageLoading ? (
+              <div className="w-full h-48 sm:h-64 flex items-center justify-center bg-slate-100">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div 
+                className="w-full h-48 sm:h-64 bg-cover bg-center"
+                style={{ backgroundImage: `url(${goalData.image_url}?retry=${imageRetry})` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
+                <img 
+                  src={goalData.image_url} 
+                  alt=""
+                  className="hidden" // Hidden image used for error detection
+                  onError={handleImageError}
+                />
+              </div>
+            )}
             <Button 
               variant="ghost" 
               onClick={() => navigate('/dashboard')} 
@@ -228,7 +265,7 @@ const GoalDetail = () => {
         )}
         
         <div className="p-3 sm:p-6">
-          {!goalData.image_url && (
+          {!hasImage && (
             <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-3 sm:mb-6 h-8 sm:h-10 text-sm sm:text-base">
               <ArrowLeft className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" /> Back to Dashboard
             </Button>

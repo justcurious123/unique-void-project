@@ -71,11 +71,17 @@ serve(async (req) => {
     });
 
     const promptData = await promptResponse.json();
+    if (!promptData.choices || !promptData.choices[0]) {
+      console.error("Failed to generate prompt:", promptData);
+      throw new Error("Failed to generate prompt with OpenAI");
+    }
+    
     const imagePrompt = promptData.choices[0].message.content.trim();
     
     console.log(`Generated custom prompt: "${imagePrompt}"`);
     
     // Use the custom prompt for image generation
+    console.log("Starting image generation with Replicate");
     const output = await replicate.run(
       "black-forest-labs/flux-schnell",
       {
@@ -92,7 +98,31 @@ serve(async (req) => {
       }
     );
 
+    if (!output || !output[0]) {
+      console.error("No output from Replicate:", output);
+      throw new Error("Failed to generate image with Replicate");
+    }
+
     console.log("Image generated successfully:", output);
+    
+    // Validate image URL
+    const imageUrl = output[0];
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('https://')) {
+      console.error("Invalid image URL format:", imageUrl);
+      throw new Error("Invalid image URL format returned from Replicate");
+    }
+    
+    // Test that the image is accessible
+    try {
+      const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
+      if (!imageResponse.ok) {
+        console.error(`Image URL returned ${imageResponse.status} status`);
+        throw new Error(`Image URL returned ${imageResponse.status} status`);
+      }
+    } catch (imgError) {
+      console.error("Error checking image URL:", imgError);
+      // Continue despite error - we'll still try to save the URL
+    }
     
     // Update the goal with the image URL
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -114,7 +144,7 @@ serve(async (req) => {
     
     const { error: updateError } = await supabase
       .from('goals')
-      .update({ image_url: output[0] })
+      .update({ image_url: imageUrl })
       .eq('id', goalId);
       
     if (updateError) {

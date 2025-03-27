@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, ExternalLink } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Flag, Loader2, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
@@ -33,6 +34,7 @@ export const GoalList: React.FC<GoalListProps> = ({
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [progressValues, setProgressValues] = useState<Record<string, number>>({});
+  const [imageRetries, setImageRetries] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const newProgressValues: Record<string, number> = {};
@@ -41,6 +43,17 @@ export const GoalList: React.FC<GoalListProps> = ({
     });
     setProgressValues(newProgressValues);
   }, [goals, calculateProgress, tasks]);
+
+  const handleImageError = (goalId: string) => {
+    console.log(`Image failed to load for goal: ${goalId}, attempting retry`);
+    setImageRetries(prev => {
+      const currentRetries = prev[goalId] || 0;
+      if (currentRetries < 2) {  // Limit retries to avoid infinite loops
+        return { ...prev, [goalId]: currentRetries + 1 };
+      }
+      return prev;
+    });
+  };
 
   if (goals.length === 0) {
     return (
@@ -64,6 +77,9 @@ export const GoalList: React.FC<GoalListProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
       {goals.map((goal) => {
         const progressValue = progressValues[goal.id] || 0;
+        const hasImage = goal.image_url && !goal.image_error;
+        const isImageLoading = goal.image_loading;
+        const retryKey = `${goal.id}-${imageRetries[goal.id] || 0}`;
         
         return (
           <Collapsible
@@ -75,20 +91,34 @@ export const GoalList: React.FC<GoalListProps> = ({
               goal.completed ? "border-green-200 bg-green-50/30" : "",
               "overflow-hidden"
             )}>
-              {goal.image_url && (
-                <div 
-                  className="relative w-full h-24 bg-cover bg-center" 
-                  style={{
-                    backgroundImage: `url(${goal.image_url})`,
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
+              {hasImage && (
+                <div className="relative w-full h-24 bg-slate-100">
+                  {isImageLoading ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div 
+                      className="relative w-full h-24 bg-cover bg-center" 
+                      style={{
+                        backgroundImage: `url(${goal.image_url}?key=${retryKey})`,
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
+                      <img 
+                        src={goal.image_url} 
+                        alt=""
+                        className="hidden" // Hidden image used for error detection
+                        onError={() => handleImageError(goal.id)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               
               <CardHeader className={cn(
                 "pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5",
-                goal.image_url ? "relative z-10 -mt-6" : ""
+                hasImage && !isImageLoading ? "relative z-10 -mt-6" : ""
               )}>
                 <div className="flex justify-between items-start">
                   <div onClick={() => handleGoalTitleClick(goal.id)} className="cursor-pointer">

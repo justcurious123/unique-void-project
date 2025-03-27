@@ -13,6 +13,8 @@ export interface Goal {
   created_at: string;
   task_summary?: string;
   image_url?: string;
+  image_loading?: boolean;
+  image_error?: boolean;
 }
 
 export interface NewGoal {
@@ -40,9 +42,39 @@ export const useGoals = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setGoals(data || []);
+      
+      // Initialize image loading states
+      const goalsWithImageState = (data || []).map(goal => ({
+        ...goal,
+        image_loading: goal.image_url ? true : false,
+        image_error: false
+      }));
+      
+      setGoals(goalsWithImageState);
+      
+      // Preload images to verify they exist
+      if (goalsWithImageState.length > 0) {
+        goalsWithImageState.forEach((goal, index) => {
+          if (goal.image_url) {
+            const img = new Image();
+            img.onload = () => {
+              setGoals(prev => prev.map((g, i) => 
+                g.id === goal.id ? { ...g, image_loading: false } : g
+              ));
+            };
+            img.onerror = () => {
+              console.error(`Failed to load image for goal: ${goal.title}`);
+              setGoals(prev => prev.map((g, i) => 
+                g.id === goal.id ? { ...g, image_loading: false, image_error: true } : g
+              ));
+            };
+            img.src = goal.image_url;
+          }
+        });
+      }
     } catch (error: any) {
       toast.error(`Error fetching goals: ${error.message}`);
+      console.error("Error fetching goals:", error);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +107,14 @@ export const useGoals = () => {
       if (error) throw error;
       
       if (data) {
-        setGoals([...goals, ...data]);
+        // Initialize new goals with image states
+        const newGoalsWithState = data.map(goal => ({
+          ...goal,
+          image_loading: false,
+          image_error: false
+        }));
+        
+        setGoals([...goals, ...newGoalsWithState]);
         return data[0];
       }
       return null;
