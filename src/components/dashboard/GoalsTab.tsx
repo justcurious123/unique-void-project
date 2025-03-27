@@ -5,6 +5,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import CreateGoalDialog from "./CreateGoalDialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const GoalsTab = () => {
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
@@ -35,6 +36,56 @@ const GoalsTab = () => {
     }
   }, [expandedGoalId, tasks]);
 
+  // Poll for image updates for recently created goals
+  useEffect(() => {
+    const newlyCreatedGoals = goals.filter(goal => goal.image_loading);
+    
+    if (newlyCreatedGoals.length === 0) return;
+    
+    // Set up polling for image updates
+    const pollInterval = setInterval(async () => {
+      let shouldRefresh = false;
+      
+      for (const goal of newlyCreatedGoals) {
+        if (!goal.image_loading) continue;
+        
+        try {
+          console.log(`Checking image status for goal: ${goal.id}`);
+          const { data, error } = await supabase
+            .from('goals')
+            .select('image_url, image_loading')
+            .eq('id', goal.id)
+            .single();
+            
+          if (error) {
+            console.error(`Error checking goal image status: ${error.message}`);
+            continue;
+          }
+          
+          if (data && !data.image_loading && data.image_url && !data.image_url.startsWith('/lovable-uploads/')) {
+            console.log(`Image ready for goal ${goal.id}: ${data.image_url}`);
+            // Update the goal in local state
+            updateGoalInState({ 
+              id: goal.id, 
+              image_url: data.image_url,
+              image_loading: false
+            });
+            shouldRefresh = true;
+          }
+        } catch (err) {
+          console.error(`Error polling for goal image: ${err}`);
+        }
+      }
+      
+      // If any images were updated, we might want to refresh the goal list
+      if (shouldRefresh) {
+        console.log('Some images were updated, refreshing goals');
+      }
+    }, 2000); // Check every 2 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [goals, updateGoalInState]);
+
   // Check for any Replicate images that are still loading
   useEffect(() => {
     const checkReplicateImages = async () => {
@@ -46,14 +97,16 @@ const GoalsTab = () => {
           try {
             // Try to preload the image
             const img = new Image();
-            img.src = `${goal.image_url}?t=${Date.now()}`;
+            const cacheKey = `${Date.now()}`;
+            img.src = `${goal.image_url}?t=${cacheKey}`;
             
             img.onload = () => {
               console.log(`Replicate image loaded for goal: ${goal.id}`);
               // Update the goal's loading state in local state
               updateGoalInState({ 
                 id: goal.id, 
-                image_loading: false
+                image_loading: false,
+                image_url: `${goal.image_url}?t=${cacheKey}`
               });
             };
             
@@ -66,7 +119,7 @@ const GoalsTab = () => {
                   image_loading: false
                 });
               }
-            }, 10000);
+            }, 5000);
           } catch (err) {
             console.error(`Error checking image for goal ${goal.id}:`, err);
             updateGoalInState({ 
@@ -81,7 +134,7 @@ const GoalsTab = () => {
     if (goals.length > 0) {
       checkReplicateImages();
     }
-  }, [goals]);
+  }, [goals, updateGoalInState]);
 
   const toggleGoalExpand = async (goalId: string) => {
     if (expandedGoalId === goalId) {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,52 +36,69 @@ const GoalCard: React.FC<GoalCardProps> = ({
   const [imageRetries, setImageRetries] = useState<number>(0);
   const [useFallback, setUseFallback] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(goal.image_loading === true);
-  const retryKey = `${goal.id}-${imageRetries}-${Date.now()}`;
-
+  const [cacheKey, setCacheKey] = useState<string>(`${Date.now()}`);
+  
+  // Reset states when goal changes
   useEffect(() => {
     setImageRetries(0);
     setUseFallback(false);
     setIsLoading(goal.image_loading === true);
+    setCacheKey(`${Date.now()}`);
   }, [goal.id, goal.image_loading]);
 
+  // Handle Replicate images loading
   useEffect(() => {
-    if (goal.image_url?.includes('replicate.delivery') && isLoading) {
-      console.log(`Preloading Replicate image for goal: ${goal.id}`);
+    if (goal.image_url?.includes('replicate.delivery')) {
+      console.log(`Monitoring Replicate image for goal: ${goal.id}`);
       
-      const img = new Image();
-      const timeoutId = setTimeout(() => {
-        console.log(`Image load timeout for: ${goal.id}`);
-        setIsLoading(false);
-      }, 8000);
-      
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        console.log(`Image loaded successfully for goal: ${goal.id}`);
-        setIsLoading(false);
-        setUseFallback(false);
-      };
-      
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        console.error(`Error loading image for goal: ${goal.id}`);
+      if (isLoading) {
+        const img = new Image();
+        const newCacheKey = `${Date.now()}-${imageRetries}`;
+        setCacheKey(newCacheKey);
         
-        if (imageRetries < 1) {
-          setImageRetries(prev => prev + 1);
-        } else {
+        const timeoutId = setTimeout(() => {
+          console.log(`Image load timeout for: ${goal.id}`);
           setIsLoading(false);
-          setUseFallback(true);
-        }
-      };
-      
-      img.src = `${goal.image_url}?t=${Date.now()}`;
+          
+          // If we've tried a few times and it's still not working, use fallback
+          if (imageRetries > 1) {
+            setUseFallback(true);
+          } else {
+            // Try again
+            setImageRetries(prev => prev + 1);
+          }
+        }, 5000);
+        
+        img.onload = () => {
+          clearTimeout(timeoutId);
+          console.log(`Image loaded successfully for goal: ${goal.id}`);
+          setIsLoading(false);
+          setUseFallback(false);
+        };
+        
+        img.onerror = () => {
+          clearTimeout(timeoutId);
+          console.error(`Error loading image for goal: ${goal.id}`);
+          
+          if (imageRetries < 2) {
+            setImageRetries(prev => prev + 1);
+          } else {
+            setIsLoading(false);
+            setUseFallback(true);
+          }
+        };
+        
+        img.src = `${goal.image_url}?t=${newCacheKey}`;
+      }
     }
   }, [goal.image_url, goal.id, isLoading, imageRetries]);
 
   const handleImageError = () => {
     console.log(`Image failed to load for goal: ${goal.id}`);
     
-    if (imageRetries < 2) {
+    if (imageRetries < 3) {
       setImageRetries(prev => prev + 1);
+      setCacheKey(`${Date.now()}-${imageRetries}`);
     } else {
       setUseFallback(true);
     }
@@ -93,6 +111,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
     setUseFallback(false);
     setImageRetries(prev => prev + 1);
     setIsLoading(true);
+    setCacheKey(`${Date.now()}-retry`);
   };
 
   const getImageUrl = () => {
@@ -101,7 +120,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
     }
     
     if (goal.image_url.includes('replicate.delivery')) {
-      return `${goal.image_url}?t=${retryKey}`;
+      return `${goal.image_url}?t=${cacheKey}`;
     }
     
     return goal.image_url;

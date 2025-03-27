@@ -34,7 +34,37 @@ export const handleGoalImagesPreloading = (
   goals: Goal[], 
   updateGoalInState: (goalUpdate: Partial<Goal> & { id: string }) => void
 ): void => {
-  goals.forEach((goal) => {
+  goals.forEach(async (goal) => {
+    // For goals with Replicate images that are still loading, check the database
+    if (goal.image_loading && goal.image_url?.includes('replicate.delivery')) {
+      // Check if the goal image is actually ready in the database
+      try {
+        const { data, error } = await supabase
+          .from('goals')
+          .select('image_url, image_loading')
+          .eq('id', goal.id)
+          .single();
+          
+        if (error) {
+          console.error(`Error checking goal image status: ${error.message}`);
+        } else if (data && !data.image_loading) {
+          // The server thinks the image is ready, update our local state
+          console.log(`Database indicates image is ready for goal: ${goal.id}`);
+          updateGoalInState({
+            id: goal.id,
+            image_loading: false,
+            image_url: data.image_url
+          });
+          
+          // Since we already know the image is ready according to the database,
+          // no need to continue with preloading
+          return;
+        }
+      } catch (error) {
+        console.error(`Error checking image status in database: ${error}`);
+      }
+    }
+    
     // Skip goals without an image URL or those using local fallback images
     if (!goal.image_url) {
       updateGoalInState({ 
@@ -126,7 +156,7 @@ export const initializeGoalWithImage = (goalData: any): Goal => {
   return {
     ...goalData,
     image_url: finalImageUrl,
-    image_loading: !isLocalImage, // Only set loading true for non-local images
+    image_loading: goalData.image_loading === null ? !isLocalImage : goalData.image_loading, // Only set loading true for non-local images
     image_error: false
   };
 };
