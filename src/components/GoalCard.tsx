@@ -69,34 +69,33 @@ const GoalCard: React.FC<GoalCardProps> = ({
         goal.completed ? "border-green-200 bg-green-50/30" : "",
         "overflow-hidden"
       )}>
-        {hasImage && (
-          <div className="relative w-full h-24 bg-slate-100">
-            {isImageLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div 
-                className="relative w-full h-24 bg-cover bg-center" 
-                style={{
-                  backgroundImage: `url(${getImageUrl()})`,
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
-                <img 
-                  src={getImageUrl()}
-                  alt=""
-                  className="hidden" // Hidden image used for error detection
-                  onError={handleImageError}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        {/* Image Section - Fixed to always show and properly handle loading state */}
+        <div className="relative w-full h-24 bg-slate-100">
+          {isImageLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div 
+              className="relative w-full h-24 bg-cover bg-center" 
+              style={{
+                backgroundImage: `url(${getImageUrl()})`,
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
+              <img 
+                src={getImageUrl()}
+                alt=""
+                className="hidden" // Hidden image used for error detection
+                onError={handleImageError}
+              />
+            </div>
+          )}
+        </div>
         
         <CardHeader className={cn(
           "pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5",
-          hasImage && !isImageLoading ? "relative z-10 -mt-6" : ""
+          !isImageLoading ? "relative z-10 -mt-6" : ""
         )}>
           <div className="flex justify-between items-start">
             <div onClick={() => handleGoalTitleClick(goal.id)} className="cursor-pointer">

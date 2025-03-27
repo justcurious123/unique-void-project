@@ -35,15 +35,29 @@ export const handleGoalImagesPreloading = (
   updateGoalInState: (goalUpdate: Partial<Goal> & { id: string }) => void
 ): void => {
   goals.forEach((goal) => {
-    if (goal.image_loading) {
+    // Skip goals without an image URL or those using local images
+    if (!goal.image_url || goal.image_url.startsWith('/lovable-uploads/')) {
+      updateGoalInState({ 
+        id: goal.id, 
+        image_loading: false, 
+        image_error: false 
+      });
+      return;
+    }
+    
+    // Only preload if image_loading is true or undefined
+    if (goal.image_loading !== false) {
+      console.log(`Preloading image for goal: ${goal.id}`);
       preloadGoalImage(
         goal,
         // On success
         (goalId) => {
+          console.log(`Image loaded successfully for goal: ${goalId}`);
           updateGoalInState({ id: goalId, image_loading: false });
         },
         // On error
         (goalId, defaultImg) => {
+          console.log(`Image failed to load for goal: ${goalId}, using default: ${defaultImg}`);
           // Update in the database too, to avoid future errors
           const updateImageUrl = async () => {
             try {
