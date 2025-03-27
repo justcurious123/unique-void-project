@@ -16,8 +16,9 @@ const GoalImage = ({ imageUrl, title, isLoading }: GoalImageProps) => {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [attempts, setAttempts] = useState(0);
   
-  // Reset loading state when imageUrl changes
+  // Reset loading state when imageUrl changes or when a new attempt is made
   useEffect(() => {
     if (imageUrl) {
       // Clear previous error state
@@ -26,21 +27,57 @@ const GoalImage = ({ imageUrl, title, isLoading }: GoalImageProps) => {
       // For local images, don't show loading state
       if (imageUrl.startsWith('/lovable-uploads/')) {
         setImageLoading(false);
+      } else if (imageUrl.includes('replicate.delivery')) {
+        // For Replicate images, show loading state and try to load
+        setImageLoading(true);
+        
+        // Create an image element to test loading
+        const img = new Image();
+        
+        // Set up a timeout to prevent infinite waiting
+        const timeoutId = setTimeout(() => {
+          console.log(`Image load timeout for: ${imageUrl}`);
+          setImageError(true);
+          setImageLoading(false);
+        }, 10000); // 10 second timeout
+        
+        img.onload = () => {
+          clearTimeout(timeoutId);
+          console.log(`Image loaded successfully: ${imageUrl}`);
+          setImageLoading(false);
+          setImageError(false);
+        };
+        
+        img.onerror = () => {
+          clearTimeout(timeoutId);
+          console.error(`Error loading image: ${imageUrl}`);
+          setImageError(true);
+          setImageLoading(false);
+        };
+        
+        // Add a cache-busting parameter
+        img.src = `${imageUrl}?t=${Date.now()}`;
       } else {
-        // For remote images, start in loading state
+        // For other remote images
         setImageLoading(true);
       }
     } else {
       // No image URL means we're not loading
       setImageLoading(false);
     }
-  }, [imageUrl]);
+  }, [imageUrl, attempts]);
 
   const handleImageError = () => {
-    console.log(`Image failed to load in GoalDetail: ${imageUrl}`);
+    console.log(`Image failed to load: ${imageUrl}`);
     setImageError(true);
     setImageLoading(false);
     return true; // Let the component know we're handling the error
+  };
+
+  const retryLoading = () => {
+    if (imageUrl) {
+      setAttempts(prev => prev + 1);
+    }
   };
 
   // Get the final image URL to display (either the provided one or a default)
@@ -65,12 +102,23 @@ const GoalImage = ({ imageUrl, title, isLoading }: GoalImageProps) => {
           {/* Hidden image to detect load/error events */}
           {!imageUrl?.startsWith('/lovable-uploads/') && (
             <img 
-              src={imageUrl || ''}
+              src={imageUrl ? `${imageUrl}?t=${Date.now()}` : ''}
               alt=""
               className="hidden"
               onLoad={() => setImageLoading(false)}
               onError={handleImageError}
             />
+          )}
+          
+          {/* Show retry button if there was an error */}
+          {imageError && imageUrl && !imageUrl.startsWith('/lovable-uploads/') && (
+            <Button 
+              variant="secondary" 
+              onClick={retryLoading} 
+              className="absolute top-12 right-3 h-8 text-xs bg-white/70 backdrop-blur-sm"
+            >
+              Retry Image
+            </Button>
           )}
         </div>
       )}

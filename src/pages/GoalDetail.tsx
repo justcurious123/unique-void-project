@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { cn } from '@/lib/utils';
 import TaskQuiz from '@/components/TaskQuiz';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { getDefaultImage, validateImageUrl } from '@/utils/goalImages';
+import { getDefaultImage } from '@/utils/goalImages';
 import GoalImage from '@/components/goal-detail/GoalImage';
 import GoalProgress from '@/components/goal-detail/GoalProgress';
 import TasksSection from '@/components/goal-detail/TasksSection';
@@ -45,29 +44,17 @@ const GoalDetail = () => {
           
         if (error) throw error;
         
-        // Process the image URL
+        // If we have a Replicate image URL, force a cache-busting parameter
         let finalImageUrl = data.image_url;
-        
-        // Set default image if none exists
-        if (!finalImageUrl) {
+        if (finalImageUrl && finalImageUrl.includes('replicate.delivery')) {
+          // Don't add cache-busting parameter yet, we'll add it during render
+          // Just make sure the URL is valid
+          console.log(`Found Replicate image URL: ${finalImageUrl}`);
+        } 
+        // If no image URL, set default image
+        else if (!finalImageUrl) {
           finalImageUrl = getDefaultImage(data.title);
-          data.image_url = finalImageUrl;
-        }
-        
-        // For external URLs, validate them before setting
-        if (finalImageUrl && !finalImageUrl.startsWith('/lovable-uploads/')) {
-          try {
-            const isValid = await validateImageUrl(finalImageUrl);
-            if (!isValid) {
-              console.log("Invalid image URL, using default");
-              finalImageUrl = getDefaultImage(data.title);
-              data.image_url = finalImageUrl;
-            }
-          } catch (error) {
-            console.error("Error validating image URL:", error);
-            finalImageUrl = getDefaultImage(data.title);
-            data.image_url = finalImageUrl;
-          }
+          console.log(`No image URL, using default: ${finalImageUrl}`);
         }
         
         setGoalData({
