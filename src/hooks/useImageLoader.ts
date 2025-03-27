@@ -6,6 +6,7 @@ interface UseImageLoaderProps {
   imageUrl: string | null;
   title?: string;
   isInitiallyLoading?: boolean;
+  forceRefresh?: boolean; // Add new prop to force refresh
 }
 
 interface UseImageLoaderResult {
@@ -18,12 +19,20 @@ interface UseImageLoaderResult {
 export function useImageLoader({
   imageUrl, 
   title = '', 
-  isInitiallyLoading = false
+  isInitiallyLoading = false,
+  forceRefresh = false
 }: UseImageLoaderProps): UseImageLoaderResult {
   const [isLoading, setIsLoading] = useState<boolean>(isInitiallyLoading);
   const [hasError, setHasError] = useState<boolean>(false);
   const [attempts, setAttempts] = useState<number>(0);
   const [cacheKey, setCacheKey] = useState<string>(`${Date.now()}`);
+  
+  // Reset cache key when forceRefresh is true
+  useEffect(() => {
+    if (forceRefresh) {
+      setCacheKey(`${Date.now()}-refresh-${Math.random()}`);
+    }
+  }, [forceRefresh]);
   
   // Reset states when imageUrl changes
   useEffect(() => {
@@ -86,7 +95,7 @@ export function useImageLoader({
   // Get the final image URL to display
   const displayImageUrl = hasError || !imageUrl 
     ? (title ? getDefaultImage(title) : '')
-    : imageUrl;
+    : `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${cacheKey}`;
 
   return {
     displayImageUrl,

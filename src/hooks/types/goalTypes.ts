@@ -1,20 +1,20 @@
+export interface NewGoal {
+  title: string;
+  description: string;
+  target_date?: string;
+}
 
 export interface Goal {
   id: string;
   title: string;
-  description: string | null;
-  target_date: string | null;
+  description: string;
+  target_date?: string;
   completed: boolean;
+  task_summary?: string;
   user_id: string;
   created_at: string;
-  task_summary?: string;
-  image_url?: string;
+  image_url: string | null;
   image_loading?: boolean;
   image_error?: boolean;
-}
-
-export interface NewGoal {
-  title: string;
-  description: string;
-  target_date: string;
+  image_refresh?: boolean; // Add new property for force refresh
 }

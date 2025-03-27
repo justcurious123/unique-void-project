@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useImageLoader } from '@/hooks/useImageLoader';
 import ImageHeader from './ImageHeader';
 import ImageLoader from './ImageLoader';
@@ -9,9 +9,27 @@ interface GoalImageProps {
   imageUrl: string | null;
   title: string;
   isLoading: boolean;
+  forceRefresh?: boolean;
 }
 
-const GoalImage = ({ imageUrl, title, isLoading }: GoalImageProps) => {
+const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps) => {
+  const [shouldForceRefresh, setShouldForceRefresh] = useState(false);
+  
+  // Detect when to force refresh based on URL or props
+  useEffect(() => {
+    if (forceRefresh || (imageUrl && imageUrl.includes('force='))) {
+      console.log(`Forcing refresh for goal detail image`);
+      setShouldForceRefresh(true);
+      
+      // Reset after a moment to avoid constant refreshing
+      const timer = setTimeout(() => {
+        setShouldForceRefresh(false);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [imageUrl, forceRefresh]);
+
   const { 
     displayImageUrl, 
     isLoading: imageLoading, 
@@ -20,7 +38,8 @@ const GoalImage = ({ imageUrl, title, isLoading }: GoalImageProps) => {
   } = useImageLoader({
     imageUrl,
     title,
-    isInitiallyLoading: isLoading
+    isInitiallyLoading: isLoading,
+    forceRefresh: shouldForceRefresh
   });
 
   const showLoader = isLoading || (imageLoading && !imageUrl?.startsWith('/lovable-uploads/'));
@@ -39,7 +58,7 @@ const GoalImage = ({ imageUrl, title, isLoading }: GoalImageProps) => {
           {/* Hidden image to detect load/error events */}
           {!imageUrl?.startsWith('/lovable-uploads/') && (
             <img 
-              src={imageUrl ? `${imageUrl}?t=${Date.now()}` : ''}
+              src={displayImageUrl}
               alt=""
               className="hidden"
               onError={() => true}

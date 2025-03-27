@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { GoalList } from "@/components/GoalList";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 const GoalsTab = () => {
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
+  const [recentlyCreatedGoalId, setRecentlyCreatedGoalId] = useState<string | null>(null);
 
   const {
     goals,
@@ -36,17 +37,78 @@ const GoalsTab = () => {
     }
   }, [expandedGoalId, tasks]);
 
-  // Poll for image updates for recently created goals
+  // Force refresh specific goal image
+  const refreshGoalImage = useCallback(async (goalId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('image_url, image_loading')
+        .eq('id', goalId)
+        .single();
+        
+      if (error) {
+        console.error(`Error checking goal image status: ${error.message}`);
+        return;
+      }
+      
+      if (data && data.image_url) {
+        console.log(`Forcing refresh for goal ${goalId} with image: ${data.image_url}`);
+        
+        // Update local state with force refresh flag
+        updateGoalInState({ 
+          id: goalId, 
+          image_url: `${data.image_url}?force=${Date.now()}`,
+          image_loading: false,
+          image_refresh: true // New flag to trigger refresh in components
+        });
+      }
+    } catch (err) {
+      console.error(`Error refreshing goal image: ${err}`);
+    }
+  }, [updateGoalInState]);
+
+  // Aggressive polling for the most recently created goal
   useEffect(() => {
-    const newlyCreatedGoals = goals.filter(goal => goal.image_loading);
+    if (!recentlyCreatedGoalId) return;
     
-    if (newlyCreatedGoals.length === 0) return;
+    console.log(`Setting up aggressive polling for new goal: ${recentlyCreatedGoalId}`);
+    
+    // Initial check after short delay
+    const initialCheck = setTimeout(() => {
+      refreshGoalImage(recentlyCreatedGoalId);
+    }, 1000);
+    
+    // Set up more frequent polling specifically for the new goal
+    const aggressiveInterval = setInterval(() => {
+      refreshGoalImage(recentlyCreatedGoalId);
+    }, 2000);
+    
+    // Clear the aggressive polling after 30 seconds
+    const clearAggressive = setTimeout(() => {
+      console.log(`Ending aggressive polling for goal: ${recentlyCreatedGoalId}`);
+      setRecentlyCreatedGoalId(null);
+    }, 30000);
+    
+    return () => {
+      clearTimeout(initialCheck);
+      clearInterval(aggressiveInterval);
+      clearTimeout(clearAggressive);
+    };
+  }, [recentlyCreatedGoalId, refreshGoalImage]);
+
+  // Regular polling for all goals with loading images
+  useEffect(() => {
+    const loadingGoals = goals.filter(goal => goal.image_loading);
+    
+    if (loadingGoals.length === 0) return;
+    
+    console.log(`Regular polling for ${loadingGoals.length} goals with loading images`);
     
     // Set up polling for image updates
     const pollInterval = setInterval(async () => {
       let shouldRefresh = false;
       
-      for (const goal of newlyCreatedGoals) {
+      for (const goal of loadingGoals) {
         if (!goal.image_loading) continue;
         
         try {
@@ -64,12 +126,18 @@ const GoalsTab = () => {
           
           if (data && !data.image_loading && data.image_url && !data.image_url.startsWith('/lovable-uploads/')) {
             console.log(`Image ready for goal ${goal.id}: ${data.image_url}`);
+            
+            // Force refresh image with new cache busting
+            const refreshedUrl = `${data.image_url}?force=${Date.now()}`;
+            
             // Update the goal in local state
             updateGoalInState({ 
               id: goal.id, 
-              image_url: data.image_url,
-              image_loading: false
+              image_url: refreshedUrl,
+              image_loading: false,
+              image_refresh: true
             });
+            
             shouldRefresh = true;
           }
         } catch (err) {
@@ -81,7 +149,7 @@ const GoalsTab = () => {
       if (shouldRefresh) {
         console.log('Some images were updated, refreshing goals');
       }
-    }, 2000); // Check every 2 seconds
+    }, 3000); // Regular check every 3 seconds
     
     return () => clearInterval(pollInterval);
   }, [goals, updateGoalInState]);
@@ -106,11 +174,12 @@ const GoalsTab = () => {
               updateGoalInState({ 
                 id: goal.id, 
                 image_loading: false,
-                image_url: `${goal.image_url}?t=${cacheKey}`
+                image_url: `${goal.image_url}?t=${cacheKey}`,
+                image_refresh: true
               });
             };
             
-            // Set a timeout to mark as non-loading after 10 seconds regardless
+            // Set a timeout to mark as non-loading after timeout
             setTimeout(() => {
               if (goal.image_loading) {
                 console.log(`Timeout waiting for image: ${goal.id}`);
@@ -156,6 +225,7 @@ const GoalsTab = () => {
 
   const handleGoalCreated = (goalId: string) => {
     setExpandedGoalId(goalId);
+    setRecentlyCreatedGoalId(goalId); // Track newly created goal for aggressive polling
     // Show a message about the image
     toast.info("Your goal image is being generated and will appear shortly");
   };

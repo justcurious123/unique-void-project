@@ -48,12 +48,13 @@ export const handleGoalImagesPreloading = (
         if (error) {
           console.error(`Error checking goal image status: ${error.message}`);
         } else if (data && !data.image_loading) {
-          // The server thinks the image is ready, update our local state
+          // The server thinks the image is ready, update our local state with force refresh
           console.log(`Database indicates image is ready for goal: ${goal.id}`);
           updateGoalInState({
             id: goal.id,
             image_loading: false,
-            image_url: data.image_url
+            image_url: `${data.image_url}?force=${Date.now()}`,
+            image_refresh: true
           });
           
           // Since we already know the image is ready according to the database,
@@ -98,7 +99,8 @@ export const handleGoalImagesPreloading = (
         updateGoalInState({ 
           id: goalId, 
           image_loading: false,
-          image_error: false
+          image_error: false,
+          image_refresh: true
         });
         
         // Also update the database
@@ -151,12 +153,13 @@ export const initializeGoalWithImage = (goalData: any): Goal => {
   // For non-local images, ensure we force a cache-busting parameter
   const finalImageUrl = isLocalImage 
     ? imageUrl
-    : imageUrl + (imageUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+    : `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
   
   return {
     ...goalData,
     image_url: finalImageUrl,
     image_loading: goalData.image_loading === null ? !isLocalImage : goalData.image_loading, // Only set loading true for non-local images
-    image_error: false
+    image_error: false,
+    image_refresh: false
   };
 };

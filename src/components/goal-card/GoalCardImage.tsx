@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useImageLoader } from '@/hooks/useImageLoader';
@@ -9,9 +9,27 @@ interface GoalCardImageProps {
   title: string;
   goalId: string;
   isLoading: boolean;
+  forceRefresh?: boolean;
 }
 
-const GoalCardImage = ({ imageUrl, title, goalId, isLoading }: GoalCardImageProps) => {
+const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: GoalCardImageProps) => {
+  const [shouldForceRefresh, setShouldForceRefresh] = useState(false);
+  
+  // Detect when to force refresh based on URL or props
+  useEffect(() => {
+    if (forceRefresh || (imageUrl && imageUrl.includes('force='))) {
+      console.log(`Forcing refresh for goal image: ${goalId}`);
+      setShouldForceRefresh(true);
+      
+      // Reset after a moment to avoid constant refreshing
+      const timer = setTimeout(() => {
+        setShouldForceRefresh(false);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [imageUrl, goalId, forceRefresh]);
+
   const { 
     displayImageUrl, 
     isLoading: imageLoading, 
@@ -20,7 +38,8 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading }: GoalCardImageProp
   } = useImageLoader({
     imageUrl,
     title,
-    isInitiallyLoading: isLoading
+    isInitiallyLoading: isLoading,
+    forceRefresh: shouldForceRefresh
   });
 
   const handleRetryClick = (e: React.MouseEvent) => {

@@ -46,6 +46,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
           title={goal.title}
           goalId={goal.id}
           isLoading={goal.image_loading === true}
+          forceRefresh={goal.image_refresh === true}
         />
         
         <CardHeader className={cn(
