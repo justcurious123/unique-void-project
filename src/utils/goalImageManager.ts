@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Goal } from "@/hooks/types/goalTypes";
-import { getDefaultImage, preloadGoalImage, validateImageUrl } from "@/utils/goalImages";
+import { preloadGoalImage, validateImageUrl } from "@/utils/goalImages";
 
 /**
  * Updates a goal's image loading state in the database
@@ -28,15 +28,12 @@ export const updateGoalImageLoadingState = async (goalId: string, isLoading: boo
  * Initializes a new goal with image state
  */
 export const initializeGoalWithImage = (goalData: any): Goal => {
-  // Assign a default image if none exists
-  const imageUrl = goalData.image_url || getDefaultImage(goalData.title);
-  
   // For explicitly local URLs (from our public dir), mark as non-loading
-  const isLocalImage = imageUrl.startsWith('/lovable-uploads/');
+  const isLocalImage = goalData.image_url?.startsWith('/lovable-uploads/');
   
   return {
     ...goalData,
-    image_url: imageUrl,
+    image_url: goalData.image_url || null,
     image_loading: goalData.image_loading ?? !isLocalImage,
     image_error: false,
     image_refresh: false
@@ -110,12 +107,10 @@ export const checkAndUpdateGoalImage = async (
     }
     
     // If it's a local fallback image
-    if (data.image_url?.startsWith('/lovable-uploads/') || !data.image_url) {
-      const imageUrl = data.image_url || getDefaultImage(data.title);
-      
+    if (data.image_url?.startsWith('/lovable-uploads/')) {
       updateGoalInState({
         id: goalId,
-        image_url: imageUrl,
+        image_url: data.image_url,
         image_loading: false,
         image_refresh: false
       });

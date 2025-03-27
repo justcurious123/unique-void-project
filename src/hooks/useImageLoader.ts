@@ -1,126 +1,115 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { getDefaultImage } from '@/utils/goalImages';
+import { useState, useEffect } from 'react';
+import { validateImageUrl, getDefaultImage } from '@/utils/goalImages';
 
 interface UseImageLoaderProps {
   imageUrl: string | null;
-  title?: string;
+  title: string;
   isInitiallyLoading?: boolean;
   forceRefresh?: boolean;
+  skipPlaceholder?: boolean; // Add option to skip using placeholder
 }
 
-interface UseImageLoaderResult {
-  displayImageUrl: string;
-  isLoading: boolean;
-  hasError: boolean;
-  retryLoading: () => void;
-  hasLoaded: boolean;
-}
-
-export function useImageLoader({
-  imageUrl, 
-  title = '', 
+export const useImageLoader = ({
+  imageUrl,
+  title,
   isInitiallyLoading = false,
-  forceRefresh = false
-}: UseImageLoaderProps): UseImageLoaderResult {
-  const [isLoading, setIsLoading] = useState<boolean>(isInitiallyLoading);
-  const [hasError, setHasError] = useState<boolean>(false);
-  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
-  const [cacheKey, setCacheKey] = useState<string>(`${Date.now()}`);
-  
-  // Get default image if null or error
-  const defaultImage = title ? getDefaultImage(title) : '';
-  
-  // Function to load and check image
-  const loadImage = useCallback((url: string) => {
-    // Skip if it's a local image from public directory
+  forceRefresh = false,
+  skipPlaceholder = false
+}: UseImageLoaderProps) => {
+  const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(isInitiallyLoading);
+  const [hasError, setHasError] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Function to load and validate the image
+  const loadImage = async (url: string | null) => {
+    if (!url) {
+      setIsLoading(false);
+      setHasError(true);
+      return;
+    }
+
+    // For local images from our public directory, just use them directly
     if (url.startsWith('/lovable-uploads/')) {
+      setDisplayImageUrl(url);
       setIsLoading(false);
-      setHasLoaded(true);
       setHasError(false);
+      setHasLoaded(true);
       return;
     }
-    
-    // For remote URLs, test loading
-    setIsLoading(true);
-    
-    const img = new Image();
-    
-    // Set up a timeout to prevent infinite waiting
-    const timeoutId = setTimeout(() => {
-      console.log(`Image load timeout for: ${url}`);
+
+    // For remote URLs, actually check if they load
+    try {
+      setIsLoading(true);
+      
+      const img = new Image();
+      
+      img.onload = () => {
+        setDisplayImageUrl(url);
+        setIsLoading(false);
+        setHasError(false);
+        setHasLoaded(true);
+      };
+      
+      img.onerror = () => {
+        console.error(`Failed to load image: ${url}`);
+        setIsLoading(false);
+        setHasError(true);
+        
+        // Only use a default image if we're not skipping placeholders
+        if (!skipPlaceholder) {
+          setDisplayImageUrl(getDefaultImage(title));
+        } else {
+          setDisplayImageUrl(null);
+        }
+      };
+      
+      // Start loading the image
+      img.src = url;
+    } catch (error) {
+      console.error('Error loading image:', error);
+      setIsLoading(false);
       setHasError(true);
-      setIsLoading(false);
-    }, 10000); // 10 second timeout
-    
-    img.onload = () => {
-      clearTimeout(timeoutId);
-      console.log(`Image loaded successfully: ${url}`);
-      setIsLoading(false);
-      setHasError(false);
-      setHasLoaded(true);
-    };
-    
-    img.onerror = () => {
-      clearTimeout(timeoutId);
-      console.error(`Error loading image: ${url}`);
-      setHasError(true);
-      setIsLoading(false);
-    };
-    
-    // Add a cache-busting parameter
-    img.src = `${url}${url.includes('?') ? '&' : '?'}t=${cacheKey}`;
-  }, [cacheKey]);
-  
-  // Handle initial load and URL changes
+      
+      // Only use a default image if we're not skipping placeholders
+      if (!skipPlaceholder) {
+        setDisplayImageUrl(getDefaultImage(title));
+      } else {
+        setDisplayImageUrl(null);
+      }
+    }
+  };
+
+  // Retry loading the image
+  const retryLoading = () => {
+    if (imageUrl) {
+      loadImage(imageUrl);
+    }
+  };
+
+  // Effect to load the image when the URL changes or force refresh is triggered
   useEffect(() => {
-    // If no image URL, use default and skip loading
-    if (!imageUrl) {
-      setIsLoading(false);
-      setHasError(false);
-      return;
-    }
-    
-    // If the image is a local image, mark as loaded immediately
-    if (imageUrl.startsWith('/lovable-uploads/')) {
+    // If we have a URL, load it
+    if (imageUrl) {
+      loadImage(imageUrl);
+    } 
+    // If we don't have a URL but aren't skipping placeholders, use default
+    else if (!skipPlaceholder) {
+      setDisplayImageUrl(getDefaultImage(title));
       setIsLoading(false);
       setHasError(false);
       setHasLoaded(true);
-      return;
+    } 
+    // If we're skipping placeholders and don't have a URL, show nothing
+    else {
+      setDisplayImageUrl(null);
+      setIsLoading(false);
+      setHasError(false);
+      setHasLoaded(false);
     }
-    
-    // Skip reloading if already loaded and not forced refresh
-    if (hasLoaded && !forceRefresh) {
-      return;
-    }
-    
-    // Generate a new cache key for forced refreshes
-    if (forceRefresh) {
-      const newCacheKey = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      setCacheKey(newCacheKey);
-    }
-    
-    // Load remote images
-    loadImage(imageUrl);
-  }, [imageUrl, forceRefresh, loadImage, hasLoaded]);
-  
-  // Function to retry loading
-  const retryLoading = useCallback(() => {
-    if (!imageUrl) return;
-    
-    console.log('Retrying image load...');
-    const newCacheKey = `${Date.now()}-retry-${Math.random().toString(36).substring(2, 9)}`;
-    setCacheKey(newCacheKey);
-    loadImage(imageUrl);
-  }, [imageUrl, loadImage]);
-  
-  // Determine the final URL to display
-  const displayImageUrl = hasError || !imageUrl 
-    ? defaultImage
-    : imageUrl.startsWith('/lovable-uploads/')
-      ? imageUrl // Don't add cache key for local images
-      : `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${cacheKey}`;
-  
+  }, [imageUrl, forceRefresh]);
+
   return {
     displayImageUrl,
     isLoading,
@@ -128,4 +117,4 @@ export function useImageLoader({
     retryLoading,
     hasLoaded
   };
-}
+};

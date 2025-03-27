@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Goal, NewGoal } from "@/hooks/types/goalTypes";
 import { toast } from "sonner";
-import { getDefaultImage } from "@/utils/goalImages";
 import { initializeGoalWithImage, updateGoalImageLoadingState } from "@/utils/goalImageManager";
 
 /**
@@ -46,9 +45,6 @@ export const createUserGoal = async (newGoal: NewGoal): Promise<Goal | null> => 
     
     const userId = session.session.user.id;
     
-    // Assign a default image initially
-    const defaultImageUrl = getDefaultImage(newGoal.title);
-    
     // Only include properties that exist in the database table
     const goalData = {
       title: newGoal.title,
@@ -56,7 +52,6 @@ export const createUserGoal = async (newGoal: NewGoal): Promise<Goal | null> => 
       target_date: newGoal.target_date,
       user_id: userId,
       completed: false,
-      image_url: defaultImageUrl,
       image_loading: true // Start with loading true so we trigger the AI image generation
     };
 

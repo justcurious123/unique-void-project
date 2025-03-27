@@ -23,7 +23,8 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
     imageUrl,
     title,
     isInitiallyLoading: isLoading,
-    forceRefresh
+    forceRefresh,
+    skipPlaceholder: true // Skip placeholder for detail view too
   });
 
   // Only show loader during initial loading phase
@@ -33,7 +34,7 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
     <div className="relative">
       {showLoader ? (
         <ImageLoader />
-      ) : (
+      ) : displayImageUrl ? (
         <div 
           className="w-full h-48 sm:h-64 bg-cover bg-center relative"
           style={{ backgroundImage: `url(${displayImageUrl})` }}
@@ -44,6 +45,10 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
           {hasError && imageUrl && !imageUrl.startsWith('/lovable-uploads/') && (
             <ImageRetryButton onRetry={retryLoading} />
           )}
+        </div>
+      ) : (
+        <div className="w-full h-48 sm:h-64 bg-slate-100 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
         </div>
       )}
       

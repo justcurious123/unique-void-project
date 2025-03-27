@@ -24,7 +24,8 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
     imageUrl,
     title,
     isInitiallyLoading: isLoading,
-    forceRefresh
+    forceRefresh,
+    skipPlaceholder: true // Skip using placeholder for initial loading
   });
 
   // Only show loader during initial loading phase
@@ -40,7 +41,7 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
     <div className="relative w-full h-24 bg-slate-100">
       {showLoader ? (
         <Skeleton className="absolute inset-0 w-full h-24" />
-      ) : (
+      ) : displayImageUrl ? (
         <div 
           className="relative w-full h-24 bg-cover bg-center" 
           style={{
@@ -60,6 +61,8 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
             </Button>
           )}
         </div>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
       )}
     </div>
   );
