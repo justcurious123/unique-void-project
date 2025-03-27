@@ -134,9 +134,12 @@ async function validateImageUrl(imageUrl: string) {
       console.error(`Image URL returned ${imageResponse.status} status`);
       throw new Error(`Image URL returned ${imageResponse.status} status`);
     }
+    console.log(`Successfully validated image URL: ${imageUrl}`);
+    return true;
   } catch (imgError) {
     console.error("Error checking image URL:", imgError);
     // Continue despite error - we'll still try to save the URL
+    return false;
   }
 }
 
@@ -153,12 +156,17 @@ async function updateGoalWithImage(goalId: string, imageUrl: string) {
   
   const { error: updateError } = await supabase
     .from('goals')
-    .update({ image_url: imageUrl })
+    .update({ 
+      image_url: imageUrl,
+      image_loading: false  // Mark loading as complete
+    })
     .eq('id', goalId);
     
   if (updateError) {
     throw new Error(`Error updating goal with image URL: ${updateError.message}`);
   }
+  
+  console.log(`Successfully updated goal ${goalId} with image URL: ${imageUrl}`);
 }
 
 // Get a default image when generation fails
@@ -197,8 +205,13 @@ async function setFallbackImage(goalId: string, goalTitle: string) {
       
       await supabase
         .from('goals')
-        .update({ image_url: defaultImageUrl })
+        .update({ 
+          image_url: defaultImageUrl,
+          image_loading: false  // Mark loading as complete
+        })
         .eq('id', goalId);
+        
+      console.log(`Set fallback image for goal ${goalId}: ${defaultImageUrl}`);
     }
     
     return defaultImageUrl;
@@ -232,10 +245,18 @@ serve(async (req) => {
       const imageUrl = await generateImage(imagePrompt, REPLICATE_API_KEY);
       
       // Validate the image URL
-      await validateImageUrl(imageUrl);
+      const isValid = await validateImageUrl(imageUrl);
+      
+      if (!isValid) {
+        console.warn("Image URL validation failed, but continuing anyway");
+      }
       
       // Update the goal with the image URL
       await updateGoalWithImage(goalId, imageUrl);
+      
+      // Log the success
+      console.log(`Goal image generated: ${imageUrl}`);
+      console.log(`Using custom prompt: ${imagePrompt}`);
 
       return new Response(
         JSON.stringify({ 

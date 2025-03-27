@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -36,7 +36,6 @@ const GoalCard: React.FC<GoalCardProps> = ({
   const [imageRetries, setImageRetries] = useState<number>(0);
   const [useFallback, setUseFallback] = useState<boolean>(false);
   const isImageLoading = goal.image_loading === true;
-  const hasImage = !!goal.image_url;
   const retryKey = `${goal.id}-${imageRetries}`;
 
   // Handle image load errors
@@ -56,8 +55,14 @@ const GoalCard: React.FC<GoalCardProps> = ({
     if (useFallback || !goal.image_url) {
       return getDefaultImage(goal.title);
     }
-    return `${goal.image_url}?key=${retryKey}`;
+    return `${goal.image_url}${goal.image_url.includes('?') ? '&' : '?'}key=${retryKey}`;
   };
+
+  // Force a re-render with a new retry key if we get a new goal
+  useEffect(() => {
+    setImageRetries(0);
+    setUseFallback(false);
+  }, [goal.id]);
 
   return (
     <Collapsible
@@ -69,7 +74,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         goal.completed ? "border-green-200 bg-green-50/30" : "",
         "overflow-hidden"
       )}>
-        {/* Image Section - Fixed to always show and properly handle loading state */}
+        {/* Image Section - Always show and properly handle loading state */}
         <div className="relative w-full h-24 bg-slate-100">
           {isImageLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-100">

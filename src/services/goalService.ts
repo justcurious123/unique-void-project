@@ -56,7 +56,8 @@ export const createUserGoal = async (newGoal: NewGoal): Promise<Goal | null> => 
       target_date: newGoal.target_date,
       user_id: userId,
       completed: false,
-      image_url: defaultImageUrl
+      image_url: defaultImageUrl,
+      image_loading: true // Start with loading true so we trigger the AI image generation
     };
 
     const { data, error } = await supabase
@@ -76,7 +77,7 @@ export const createUserGoal = async (newGoal: NewGoal): Promise<Goal | null> => 
     // Initialize new goal with image states
     const newGoalWithState = initializeGoalWithImage(data[0]);
     
-    // Update the database with image_loading state
+    // Update the database with image_loading state explicitly
     await updateGoalImageLoadingState(data[0].id, true);
     
     return newGoalWithState;

@@ -35,8 +35,19 @@ export const handleGoalImagesPreloading = (
   updateGoalInState: (goalUpdate: Partial<Goal> & { id: string }) => void
 ): void => {
   goals.forEach((goal) => {
-    // Skip goals without an image URL or those using local images
-    if (!goal.image_url || goal.image_url.startsWith('/lovable-uploads/')) {
+    // Skip goals without an image URL or those using local fallback images
+    if (!goal.image_url) {
+      updateGoalInState({ 
+        id: goal.id, 
+        image_loading: false,
+        image_error: false,
+        image_url: getDefaultImage(goal.title)
+      });
+      return;
+    }
+    
+    if (goal.image_url.startsWith('/lovable-uploads/')) {
+      // For local images, just mark as non-loading
       updateGoalInState({ 
         id: goal.id, 
         image_loading: false, 
@@ -45,44 +56,55 @@ export const handleGoalImagesPreloading = (
       return;
     }
     
-    // Only preload if image_loading is true or undefined
-    if (goal.image_loading !== false) {
-      console.log(`Preloading image for goal: ${goal.id}`);
-      preloadGoalImage(
-        goal,
-        // On success
-        (goalId) => {
-          console.log(`Image loaded successfully for goal: ${goalId}`);
-          updateGoalInState({ id: goalId, image_loading: false });
-        },
-        // On error
-        (goalId, defaultImg) => {
-          console.log(`Image failed to load for goal: ${goalId}, using default: ${defaultImg}`);
-          // Update in the database too, to avoid future errors
-          const updateImageUrl = async () => {
-            try {
-              await supabase
-                .from('goals')
-                .update({ image_url: defaultImg })
-                .eq('id', goalId);
-              console.log(`Updated goal ${goalId} with default image after load failure`);
-            } catch (err) {
-              console.error('Failed to update goal with default image:', err);
-            }
-          };
-          
-          // Execute the async function
-          updateImageUrl();
+    // For remote URLs (like those from Replicate), always preload
+    // to verify they're accessible, regardless of current loading state
+    console.log(`Preloading image for goal: ${goal.id} with URL: ${goal.image_url}`);
+    
+    preloadGoalImage(
+      goal,
+      // On success
+      (goalId) => {
+        console.log(`Image loaded successfully for goal: ${goalId}`);
+        updateGoalInState({ 
+          id: goalId, 
+          image_loading: false,
+          image_error: false
+        });
+        
+        // Also update the database
+        updateGoalImageLoadingState(goalId, false);
+      },
+      // On error
+      (goalId, defaultImg) => {
+        console.log(`Image failed to load for goal: ${goalId}, using default: ${defaultImg}`);
+        
+        // Update in the database too, to avoid future errors
+        const updateImageUrl = async () => {
+          try {
+            await supabase
+              .from('goals')
+              .update({ 
+                image_url: defaultImg,
+                image_loading: false
+              })
+              .eq('id', goalId);
+            console.log(`Updated goal ${goalId} with default image after load failure`);
+          } catch (err) {
+            console.error('Failed to update goal with default image:', err);
+          }
+        };
+        
+        // Execute the async function
+        updateImageUrl();
 
-          updateGoalInState({ 
-            id: goalId, 
-            image_loading: false, 
-            image_error: false,
-            image_url: defaultImg
-          });
-        }
-      );
-    }
+        updateGoalInState({ 
+          id: goalId, 
+          image_loading: false, 
+          image_error: false,
+          image_url: defaultImg
+        });
+      }
+    );
   });
 };
 
@@ -96,9 +118,14 @@ export const initializeGoalWithImage = (goalData: any): Goal => {
   // For explicitly local URLs (from our public dir), mark as non-loading
   const isLocalImage = imageUrl && imageUrl.startsWith('/lovable-uploads/');
   
+  // For non-local images, ensure we force a cache-busting parameter
+  const finalImageUrl = isLocalImage 
+    ? imageUrl
+    : imageUrl + (imageUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+  
   return {
     ...goalData,
-    image_url: imageUrl,
+    image_url: finalImageUrl,
     image_loading: !isLocalImage, // Only set loading true for non-local images
     image_error: false
   };

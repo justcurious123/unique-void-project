@@ -56,10 +56,17 @@ export const preloadGoalImage = (
     return;
   }
 
-  // For remote URLs, preload to check validity
+  // For remote URLs, add a cache-busting parameter and preload to check validity
+  const cacheBustUrl = goal.image_url.includes('?') 
+    ? `${goal.image_url}&t=${Date.now()}` 
+    : `${goal.image_url}?t=${Date.now()}`;
+  
+  console.log(`Attempting to preload image: ${cacheBustUrl}`);
+  
   const img = new Image();
   
   img.onload = () => {
+    console.log(`Image loaded successfully for goal: ${goal.id}`);
     onSuccess(goal.id);
   };
   
@@ -70,8 +77,8 @@ export const preloadGoalImage = (
     onError(goal.id, defaultImg);
   };
 
-  // Add a random query param to avoid caching issues
-  img.src = `${goal.image_url}?t=${Date.now()}`;
+  // Set the source to trigger the loading
+  img.src = cacheBustUrl;
 };
 
 // Apply image properties to goals
@@ -87,9 +94,14 @@ export const applyImagePropertiesToGoals = (goals: any[]) => {
     // For explicitly local URLs (from our public dir), mark as non-loading
     const isLocalImage = imageUrl && imageUrl.startsWith('/lovable-uploads/');
     
+    // For non-local images, add a cache-busting parameter
+    const finalImageUrl = isLocalImage 
+      ? imageUrl
+      : imageUrl + (imageUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+    
     return {
       ...goal,
-      image_url: imageUrl,
+      image_url: finalImageUrl,
       image_loading: !isLocalImage, // Only set loading true for non-local images
       image_error: false
     };
