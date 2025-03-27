@@ -58,7 +58,7 @@ export async function generateImage(imagePrompt: string, REPLICATE_API_KEY: stri
         aspect_ratio: "16:9",
         output_format: "webp",
         output_quality: 90,
-        num_inference_steps: 4
+        num_inference_steps: 4  // Limit to 4 as required by the model
       }
     }
   );
@@ -83,7 +83,17 @@ export async function generateImage(imagePrompt: string, REPLICATE_API_KEY: stri
 // Test that the image is accessible
 export async function validateImageUrl(imageUrl: string) {
   try {
-    const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
+    // Set a timeout to avoid hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const imageResponse = await fetch(imageUrl, { 
+      method: 'HEAD',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
     if (!imageResponse.ok) {
       console.error(`Image URL returned ${imageResponse.status} status`);
       throw new Error(`Image URL returned ${imageResponse.status} status`);

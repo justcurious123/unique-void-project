@@ -29,9 +29,27 @@ export const getDefaultImage = (goalTitle: string): string => {
 
 export const validateImageUrl = async (url: string): Promise<boolean> => {
   try {
-    // Simple HEAD request to check if the image exists and is accessible
-    const response = await fetch(url, { method: 'HEAD' });
-    return response.ok;
+    // Skip validation for local images
+    if (url.startsWith('/lovable-uploads/')) {
+      return true;
+    }
+    
+    // For remote URLs, use a proper HEAD request with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    // Check if this is an image content type
+    const contentType = response.headers.get('content-type');
+    const isImage = contentType && contentType.startsWith('image/');
+    
+    return response.ok && isImage;
   } catch (error) {
     console.error('Error validating image URL:', error);
     return false;
@@ -49,36 +67,35 @@ export const preloadGoalImage = (
     return;
   }
 
-  // Check if the image URL starts with "/lovable-uploads/" 
-  // which means it's already a fallback image from our public directory
+  // For local images, don't try to preload - they're already reliable
   if (goal.image_url.startsWith('/lovable-uploads/')) {
     onSuccess(goal.id);
     return;
   }
 
-  // For remote URLs, add a cache-busting parameter and preload to check validity
-  const cacheBustUrl = goal.image_url.includes('?') 
-    ? `${goal.image_url}&t=${Date.now()}` 
-    : `${goal.image_url}?t=${Date.now()}`;
-  
-  console.log(`Attempting to preload image: ${cacheBustUrl}`);
-  
+  // For remote URLs, set a timeout to avoid hanging
   const img = new Image();
+  const timeoutId = setTimeout(() => {
+    console.log(`Image load timeout for goal: ${goal.id}`);
+    const defaultImg = getDefaultImage(goal.title);
+    onError(goal.id, defaultImg);
+  }, 5000); // 5 second timeout
   
   img.onload = () => {
+    clearTimeout(timeoutId);
     console.log(`Image loaded successfully for goal: ${goal.id}`);
     onSuccess(goal.id);
   };
   
   img.onerror = () => {
+    clearTimeout(timeoutId);
     console.error(`Failed to load image for goal: ${goal.title}`);
-    // If the Supabase image fails, use our default image instead
     const defaultImg = getDefaultImage(goal.title);
     onError(goal.id, defaultImg);
   };
 
   // Set the source to trigger the loading
-  img.src = cacheBustUrl;
+  img.src = goal.image_url;
 };
 
 // Apply image properties to goals
@@ -94,14 +111,9 @@ export const applyImagePropertiesToGoals = (goals: any[]) => {
     // For explicitly local URLs (from our public dir), mark as non-loading
     const isLocalImage = imageUrl && imageUrl.startsWith('/lovable-uploads/');
     
-    // For non-local images, add a cache-busting parameter
-    const finalImageUrl = isLocalImage 
-      ? imageUrl
-      : imageUrl + (imageUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`;
-    
     return {
       ...goal,
-      image_url: finalImageUrl,
+      image_url: imageUrl,
       image_loading: !isLocalImage, // Only set loading true for non-local images
       image_error: false
     };

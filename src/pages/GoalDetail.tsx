@@ -34,6 +34,9 @@ const GoalDetail = () => {
       try {
         if (!goalId) return;
         
+        setIsLoading(true);
+        setImageLoading(true);
+        
         const { data, error } = await supabase
           .from('goals')
           .select('*')
@@ -42,34 +45,42 @@ const GoalDetail = () => {
           
         if (error) throw error;
         
+        // Process the image URL
+        let finalImageUrl = data.image_url;
+        
         // Set default image if none exists
-        if (!data.image_url) {
-          data.image_url = getDefaultImage(data.title);
+        if (!finalImageUrl) {
+          finalImageUrl = getDefaultImage(data.title);
+          data.image_url = finalImageUrl;
         }
         
         // For external URLs, validate them before setting
-        if (data.image_url && !data.image_url.startsWith('/lovable-uploads/')) {
-          setImageLoading(true);
+        if (finalImageUrl && !finalImageUrl.startsWith('/lovable-uploads/')) {
           try {
-            const isValid = await validateImageUrl(data.image_url);
+            const isValid = await validateImageUrl(finalImageUrl);
             if (!isValid) {
               console.log("Invalid image URL, using default");
-              data.image_url = getDefaultImage(data.title);
+              finalImageUrl = getDefaultImage(data.title);
+              data.image_url = finalImageUrl;
             }
           } catch (error) {
             console.error("Error validating image URL:", error);
-            data.image_url = getDefaultImage(data.title);
-          } finally {
-            setImageLoading(false);
+            finalImageUrl = getDefaultImage(data.title);
+            data.image_url = finalImageUrl;
           }
         }
         
-        setGoalData(data);
+        setGoalData({
+          ...data,
+          image_url: finalImageUrl
+        });
+        
       } catch (error: any) {
         toast.error(`Error fetching goal details: ${error.message}`);
         navigate('/dashboard');
       } finally {
         setIsLoading(false);
+        setImageLoading(false);
       }
     };
     
