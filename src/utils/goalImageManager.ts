@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Goal } from "@/hooks/types/goalTypes";
 import { getDefaultImage } from "@/utils/goalImages";
+import { preloadGoalImage, validateImageUrl } from "@/utils/goalImages";
 
 /**
  * Updates a goal's image loading state in the database
@@ -41,6 +42,76 @@ export const initializeGoalWithImage = (goalData: any): Goal => {
     image_error: false,
     image_refresh: false
   };
+};
+
+/**
+ * Handles preloading images for a list of goals
+ */
+export const handleGoalImagesPreloading = (
+  goals: Goal[], 
+  updateGoalInState: (goalUpdate: Partial<Goal> & { id: string }) => void
+): void => {
+  // Process each goal for image preloading
+  goals.forEach(goal => {
+    // Skip goals with local images - they don't need preloading
+    if (goal.image_url?.startsWith('/lovable-uploads/')) {
+      return;
+    }
+    
+    // For loading goals, check their status
+    if (goal.image_loading) {
+      checkAndUpdateGoalImage(goal.id, updateGoalInState)
+        .then(updated => {
+          if (!updated) {
+            console.log(`Goal ${goal.id} image still loading`);
+          }
+        });
+    }
+    
+    // For goals with URLs that should be checked
+    if (goal.image_url && !goal.image_url.startsWith('/lovable-uploads/')) {
+      // Validate the URL and preload the image
+      validateImageUrl(goal.image_url)
+        .then(isValid => {
+          if (isValid) {
+            // Success handler
+            const onSuccess = () => {
+              updateGoalInState({
+                id: goal.id,
+                image_loading: false,
+                image_error: false
+              });
+            };
+            
+            // Error handler
+            const onError = (defaultImage: string) => {
+              updateGoalInState({
+                id: goal.id,
+                image_url: defaultImage,
+                image_loading: false,
+                image_error: true
+              });
+            };
+            
+            // Preload the image
+            preloadGoalImage(
+              goal, 
+              () => onSuccess(),
+              (_, defaultImg) => onError(defaultImg)
+            );
+          } else {
+            // If URL is invalid, use default image
+            const defaultImg = getDefaultImage(goal.title);
+            updateGoalInState({
+              id: goal.id,
+              image_url: defaultImg,
+              image_loading: false,
+              image_error: true
+            });
+          }
+        });
+    }
+  });
 };
 
 /**

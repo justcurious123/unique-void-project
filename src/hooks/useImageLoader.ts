@@ -83,6 +83,14 @@ export function useImageLoader({
       return;
     }
     
+    // If the image is a local image, mark as loaded immediately
+    if (imageUrl.startsWith('/lovable-uploads/')) {
+      setIsLoading(false);
+      setHasError(false);
+      setHasLoaded(true);
+      return;
+    }
+    
     // Skip reloading if already loaded and not forced refresh
     if (hasLoaded && !forceRefresh && !imageUrl.includes('force=')) {
       return;
@@ -95,14 +103,6 @@ export function useImageLoader({
     
     if (forceRefresh || cacheKey !== newCacheKey) {
       setCacheKey(newCacheKey);
-    }
-    
-    // Handle local images immediately
-    if (imageUrl.startsWith('/lovable-uploads/')) {
-      setIsLoading(false);
-      setHasError(false);
-      setHasLoaded(true);
-      return;
     }
     
     // Load remote images
@@ -122,7 +122,9 @@ export function useImageLoader({
   // Determine the final URL to display
   const displayImageUrl = hasError || !imageUrl 
     ? defaultImage
-    : `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${cacheKey}`;
+    : imageUrl.startsWith('/lovable-uploads/')
+      ? imageUrl // Don't add cache key for local images
+      : `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${cacheKey}`;
   
   return {
     displayImageUrl,
