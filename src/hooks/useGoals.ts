@@ -64,16 +64,21 @@ export const useGoals = () => {
               // On error
               (goalId, defaultImg) => {
                 // Update in the database too, to avoid future errors
-                supabase
-                  .from('goals')
-                  .update({ image_url: defaultImg })
-                  .eq('id', goalId)
-                  .then(() => {
+                // Fix: Properly handle the Promise by using async/await or a proper Promise chain
+                const updateImageUrl = async () => {
+                  try {
+                    await supabase
+                      .from('goals')
+                      .update({ image_url: defaultImg })
+                      .eq('id', goalId);
                     console.log(`Updated goal ${goalId} with default image after load failure`);
-                  })
-                  .catch(err => {
+                  } catch (err) {
                     console.error('Failed to update goal with default image:', err);
-                  });
+                  }
+                };
+                
+                // Execute the async function
+                updateImageUrl();
 
                 setGoals(prev => prev.map((g) => 
                   g.id === goalId ? { 
