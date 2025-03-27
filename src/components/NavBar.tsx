@@ -51,7 +51,7 @@ const NavBar: React.FC = () => {
       <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 md:px-10", isScrolled ? "py-3 glass-effect shadow-subtle" : "py-4 sm:py-6 bg-transparent")}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center transition-opacity hover:opacity-80">
-            <img src="/lovable-uploads/e469a406-0cc2-4a24-a75c-353e5c1de348.png" alt="WayToPoint Logo" className="h-8 sm:h-10 mr-2" />
+            <img alt="WayToPoint Logo" className="h-8 sm:h-10 mr-2" src="/lovable-uploads/b4f113f2-c30a-406a-ac22-34858aa1f8e0.png" />
             <span className="text-xl font-medium tracking-tight">WayToPoint</span>
           </Link>
 

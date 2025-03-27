@@ -1,19 +1,12 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-
 const Footer: React.FC = () => {
-  return (
-    <footer className="border-t border-border py-16 px-6">
+  return <footer className="border-t border-border py-16 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-4">
             <Link to="/" className="flex items-center">
-              <img 
-                src="/lovable-uploads/e469a406-0cc2-4a24-a75c-353e5c1de348.png" 
-                alt="WayToPoint Logo" 
-                className="h-8 mr-2"
-              />
+              <img alt="WayToPoint Logo" className="h-8 mr-2" src="/lovable-uploads/19dbdc4d-6f26-4be2-95de-ffad330185cf.png" />
               <span className="text-xl font-medium tracking-tight">WayToPoint</span>
             </Link>
             <p className="text-foreground/70 text-sm">
@@ -24,48 +17,33 @@ const Footer: React.FC = () => {
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Products</h3>
             <ul className="space-y-2">
-              {["Features", "Pricing", "Gallery", "Resources"].map((item) => (
-                <li key={item}>
-                  <a 
-                    href="#" 
-                    className="text-sm text-foreground/70 transition-colors hover:text-foreground"
-                  >
+              {["Features", "Pricing", "Gallery", "Resources"].map(item => <li key={item}>
+                  <a href="#" className="text-sm text-foreground/70 transition-colors hover:text-foreground">
                     {item}
                   </a>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Company</h3>
             <ul className="space-y-2">
-              {["About", "Blog", "Careers", "Contact"].map((item) => (
-                <li key={item}>
-                  <a 
-                    href="#" 
-                    className="text-sm text-foreground/70 transition-colors hover:text-foreground"
-                  >
+              {["About", "Blog", "Careers", "Contact"].map(item => <li key={item}>
+                  <a href="#" className="text-sm text-foreground/70 transition-colors hover:text-foreground">
                     {item}
                   </a>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Legal</h3>
             <ul className="space-y-2">
-              {["Terms", "Privacy", "Cookies", "Licenses"].map((item) => (
-                <li key={item}>
-                  <a 
-                    href="#" 
-                    className="text-sm text-foreground/70 transition-colors hover:text-foreground"
-                  >
+              {["Terms", "Privacy", "Cookies", "Licenses"].map(item => <li key={item}>
+                  <a href="#" className="text-sm text-foreground/70 transition-colors hover:text-foreground">
                     {item}
                   </a>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
         </div>
@@ -75,20 +53,12 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} WayToPoint. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            {["Twitter", "Instagram", "LinkedIn", "GitHub"].map((item) => (
-              <a
-                key={item}
-                href="#"
-                className="text-sm text-foreground/70 transition-colors hover:text-foreground"
-              >
+            {["Twitter", "Instagram", "LinkedIn", "GitHub"].map(item => <a key={item} href="#" className="text-sm text-foreground/70 transition-colors hover:text-foreground">
                 {item}
-              </a>
-            ))}
+              </a>)}
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
