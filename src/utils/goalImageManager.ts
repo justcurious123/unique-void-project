@@ -1,8 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Goal } from "@/hooks/types/goalTypes";
-import { getDefaultImage } from "@/utils/goalImages";
-import { preloadGoalImage, validateImageUrl } from "@/utils/goalImages";
+import { getDefaultImage, preloadGoalImage, validateImageUrl } from "@/utils/goalImages";
 
 /**
  * Updates a goal's image loading state in the database
@@ -58,58 +57,15 @@ export const handleGoalImagesPreloading = (
       return;
     }
     
-    // For loading goals, check their status
-    if (goal.image_loading) {
-      checkAndUpdateGoalImage(goal.id, updateGoalInState)
-        .then(updated => {
-          if (!updated) {
-            console.log(`Goal ${goal.id} image still loading`);
-          }
-        });
-    }
-    
-    // For goals with URLs that should be checked
+    // For goals with remote URLs, check status
     if (goal.image_url && !goal.image_url.startsWith('/lovable-uploads/')) {
-      // Validate the URL and preload the image
-      validateImageUrl(goal.image_url)
-        .then(isValid => {
-          if (isValid) {
-            // Success handler
-            const onSuccess = () => {
-              updateGoalInState({
-                id: goal.id,
-                image_loading: false,
-                image_error: false
-              });
-            };
-            
-            // Error handler
-            const onError = (defaultImage: string) => {
-              updateGoalInState({
-                id: goal.id,
-                image_url: defaultImage,
-                image_loading: false,
-                image_error: true
-              });
-            };
-            
-            // Preload the image
-            preloadGoalImage(
-              goal, 
-              () => onSuccess(),
-              (_, defaultImg) => onError(defaultImg)
-            );
-          } else {
-            // If URL is invalid, use default image
-            const defaultImg = getDefaultImage(goal.title);
-            updateGoalInState({
-              id: goal.id,
-              image_url: defaultImg,
-              image_loading: false,
-              image_error: true
-            });
-          }
-        });
+      // Skip already loaded images unless they're marked for refresh
+      if (!goal.image_loading && !goal.image_refresh) {
+        return;
+      }
+      
+      // For loading goals, check their status
+      checkAndUpdateGoalImage(goal.id, updateGoalInState);
     }
   });
 };

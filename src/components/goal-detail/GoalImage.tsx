@@ -26,8 +26,8 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
     forceRefresh
   });
 
-  // Only show loader when initially loading and not already loaded
-  const showLoader = isLoading || (imageLoading && !hasLoaded);
+  // Only show loader during initial loading phase
+  const showLoader = (isLoading || imageLoading) && !hasLoaded;
   
   return (
     <div className="relative">

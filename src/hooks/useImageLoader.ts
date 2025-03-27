@@ -32,7 +32,7 @@ export function useImageLoader({
   const defaultImage = title ? getDefaultImage(title) : '';
   
   // Function to load and check image
-  const loadImage = useCallback((url: string, newCacheKey: string) => {
+  const loadImage = useCallback((url: string) => {
     // Skip if it's a local image from public directory
     if (url.startsWith('/lovable-uploads/')) {
       setIsLoading(false);
@@ -43,8 +43,6 @@ export function useImageLoader({
     
     // For remote URLs, test loading
     setIsLoading(true);
-    setHasLoaded(false);
-    setHasError(false);
     
     const img = new Image();
     
@@ -71,8 +69,8 @@ export function useImageLoader({
     };
     
     // Add a cache-busting parameter
-    img.src = `${url}${url.includes('?') ? '&' : '?'}t=${newCacheKey}`;
-  }, []);
+    img.src = `${url}${url.includes('?') ? '&' : '?'}t=${cacheKey}`;
+  }, [cacheKey]);
   
   // Handle initial load and URL changes
   useEffect(() => {
@@ -92,22 +90,19 @@ export function useImageLoader({
     }
     
     // Skip reloading if already loaded and not forced refresh
-    if (hasLoaded && !forceRefresh && !imageUrl.includes('force=')) {
+    if (hasLoaded && !forceRefresh) {
       return;
     }
     
     // Generate a new cache key for forced refreshes
-    const newCacheKey = forceRefresh || imageUrl.includes('force=') 
-      ? `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-      : cacheKey;
-    
-    if (forceRefresh || cacheKey !== newCacheKey) {
+    if (forceRefresh) {
+      const newCacheKey = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       setCacheKey(newCacheKey);
     }
     
     // Load remote images
-    loadImage(imageUrl, newCacheKey);
-  }, [imageUrl, forceRefresh, loadImage, cacheKey, hasLoaded]);
+    loadImage(imageUrl);
+  }, [imageUrl, forceRefresh, loadImage, hasLoaded]);
   
   // Function to retry loading
   const retryLoading = useCallback(() => {
@@ -116,7 +111,7 @@ export function useImageLoader({
     console.log('Retrying image load...');
     const newCacheKey = `${Date.now()}-retry-${Math.random().toString(36).substring(2, 9)}`;
     setCacheKey(newCacheKey);
-    loadImage(imageUrl, newCacheKey);
+    loadImage(imageUrl);
   }, [imageUrl, loadImage]);
   
   // Determine the final URL to display

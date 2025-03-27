@@ -1,7 +1,7 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useImageLoader } from '@/hooks/useImageLoader';
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -27,21 +27,14 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
     forceRefresh
   });
 
-  // Only show loader when initially loading or during active loading
-  const showLoader = isLoading || (imageLoading && !hasLoaded);
+  // Only show loader during initial loading phase
+  const showLoader = (isLoading || imageLoading) && !hasLoaded;
 
   const handleRetryClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     console.log(`Manually retrying image for goal: ${goalId}`);
     retryLoading();
   };
-
-  // Log when we detect a force refresh
-  useEffect(() => {
-    if (forceRefresh) {
-      console.log(`Force refreshing image for goal: ${goalId}`);
-    }
-  }, [forceRefresh, goalId]);
 
   return (
     <div className="relative w-full h-24 bg-slate-100">
@@ -65,12 +58,6 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
             >
               <RefreshCw className="h-3 w-3" />
             </Button>
-          )}
-          
-          {imageLoading && (
-            <div className="absolute top-2 left-2">
-              <Loader2 className="h-4 w-4 animate-spin text-white drop-shadow-md" />
-            </div>
           )}
         </div>
       )}
