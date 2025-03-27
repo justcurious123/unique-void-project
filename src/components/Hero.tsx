@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import { ArrowDown } from "lucide-react";
 
@@ -50,7 +49,7 @@ const Hero: React.FC = () => {
           <img 
             src="/lovable-uploads/e469a406-0cc2-4a24-a75c-353e5c1de348.png" 
             alt="WayToPoint Logo" 
-            className="h-28 md:h-32 mx-auto mb-4"
+            className="h-48 md:h-64 mx-auto mb-4"
           />
         </div>
         
