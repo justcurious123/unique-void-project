@@ -64,7 +64,7 @@ const NavBar: React.FC = () => {
                 <Link to="/dashboard">
                   <Button variant="outline" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    <span>`Dashboard</span>
+                    <span>Dashboard</span>
                   </Button>
                 </Link>
               </div> : <Link to="/auth">
