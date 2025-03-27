@@ -145,12 +145,18 @@ export const useGoals = () => {
         
         setGoals([...newGoalsWithState, ...goals]);
         
-        // Update the database with image_loading state
+        // Update the database with image_loading state - Use separate DB update
+        // to avoid TypeScript issues with the column
         try {
-          await supabase
-            .from('goals')
-            .update({ image_loading: true })
-            .eq('id', data[0].id);
+          // Use a raw query with SQL parameters to set image_loading
+          const { error: updateError } = await supabase.rpc(
+            'update_goal_image_loading',
+            { goal_id: data[0].id, is_loading: true }
+          );
+          
+          if (updateError) {
+            console.error('Failed to update image_loading state:', updateError);
+          }
         } catch (updateError) {
           console.error('Failed to update image_loading state:', updateError);
         }
