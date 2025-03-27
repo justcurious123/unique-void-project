@@ -87,56 +87,57 @@ export const handleGoalImagesPreloading = (
       return;
     }
     
-    // For remote URLs (like those from Replicate), always preload
-    // to verify they're accessible, regardless of current loading state
-    console.log(`Preloading image for goal: ${goal.id} with URL: ${goal.image_url}`);
-    
-    preloadGoalImage(
-      goal,
-      // On success
-      (goalId) => {
-        console.log(`Image loaded successfully for goal: ${goalId}`);
-        updateGoalInState({ 
-          id: goalId, 
-          image_loading: false,
-          image_error: false,
-          image_refresh: true
-        });
-        
-        // Also update the database
-        updateGoalImageLoadingState(goalId, false);
-      },
-      // On error
-      (goalId, defaultImg) => {
-        console.log(`Image failed to load for goal: ${goalId}, using default: ${defaultImg}`);
-        
-        // Update in the database too, to avoid future errors
-        const updateImageUrl = async () => {
-          try {
-            await supabase
-              .from('goals')
-              .update({ 
-                image_url: defaultImg,
-                image_loading: false
-              })
-              .eq('id', goalId);
-            console.log(`Updated goal ${goalId} with default image after load failure`);
-          } catch (err) {
-            console.error('Failed to update goal with default image:', err);
-          }
-        };
-        
-        // Execute the async function
-        updateImageUrl();
+    // For remote URLs (like those from Replicate), preload only if marked as loading
+    if (goal.image_loading) {
+      console.log(`Preloading image for goal: ${goal.id} with URL: ${goal.image_url}`);
+      
+      preloadGoalImage(
+        goal,
+        // On success
+        (goalId) => {
+          console.log(`Image loaded successfully for goal: ${goalId}`);
+          updateGoalInState({ 
+            id: goalId, 
+            image_loading: false,
+            image_error: false,
+            image_refresh: true
+          });
+          
+          // Also update the database
+          updateGoalImageLoadingState(goalId, false);
+        },
+        // On error
+        (goalId, defaultImg) => {
+          console.log(`Image failed to load for goal: ${goalId}, using default: ${defaultImg}`);
+          
+          // Update in the database too, to avoid future errors
+          const updateImageUrl = async () => {
+            try {
+              await supabase
+                .from('goals')
+                .update({ 
+                  image_url: defaultImg,
+                  image_loading: false
+                })
+                .eq('id', goalId);
+              console.log(`Updated goal ${goalId} with default image after load failure`);
+            } catch (err) {
+              console.error('Failed to update goal with default image:', err);
+            }
+          };
+          
+          // Execute the async function
+          updateImageUrl();
 
-        updateGoalInState({ 
-          id: goalId, 
-          image_loading: false, 
-          image_error: false,
-          image_url: defaultImg
-        });
-      }
-    );
+          updateGoalInState({ 
+            id: goalId, 
+            image_loading: false, 
+            image_error: false,
+            image_url: defaultImg
+          });
+        }
+      );
+    }
   });
 };
 

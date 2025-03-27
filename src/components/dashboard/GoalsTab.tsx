@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { GoalList } from "@/components/GoalList";
 import { useGoals } from "@/hooks/useGoals";
@@ -11,6 +10,7 @@ const GoalsTab = () => {
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
   const [recentlyCreatedGoalId, setRecentlyCreatedGoalId] = useState<string | null>(null);
+  const [loadedGoalImages, setLoadedGoalImages] = useState<Set<string>>(new Set());
 
   const {
     goals,
@@ -40,6 +40,11 @@ const GoalsTab = () => {
   // Force refresh specific goal image
   const refreshGoalImage = useCallback(async (goalId: string) => {
     try {
+      // Skip if we've already loaded this goal's image
+      if (loadedGoalImages.has(goalId)) {
+        return;
+      }
+
       const { data, error } = await supabase
         .from('goals')
         .select('image_url, image_loading')
@@ -59,13 +64,18 @@ const GoalsTab = () => {
           id: goalId, 
           image_url: `${data.image_url}?force=${Date.now()}`,
           image_loading: false,
-          image_refresh: true // New flag to trigger refresh in components
+          image_refresh: true
         });
+        
+        // If database says it's not loading, mark as loaded locally
+        if (!data.image_loading) {
+          setLoadedGoalImages(prev => new Set(prev).add(goalId));
+        }
       }
     } catch (err) {
       console.error(`Error refreshing goal image: ${err}`);
     }
-  }, [updateGoalInState]);
+  }, [updateGoalInState, loadedGoalImages]);
 
   // Aggressive polling for the most recently created goal
   useEffect(() => {
@@ -73,17 +83,30 @@ const GoalsTab = () => {
     
     console.log(`Setting up aggressive polling for new goal: ${recentlyCreatedGoalId}`);
     
+    let pollCount = 0;
+    const maxPolls = 15; // Limit maximum polls to prevent infinite refreshing
+    
     // Initial check after short delay
     const initialCheck = setTimeout(() => {
       refreshGoalImage(recentlyCreatedGoalId);
+      pollCount++;
     }, 1000);
     
     // Set up more frequent polling specifically for the new goal
     const aggressiveInterval = setInterval(() => {
+      // If we've reached max polls or the image is loaded, stop polling
+      if (pollCount >= maxPolls || loadedGoalImages.has(recentlyCreatedGoalId)) {
+        console.log(`Ending aggressive polling for goal: ${recentlyCreatedGoalId}`);
+        clearInterval(aggressiveInterval);
+        setRecentlyCreatedGoalId(null);
+        return;
+      }
+      
       refreshGoalImage(recentlyCreatedGoalId);
+      pollCount++;
     }, 2000);
     
-    // Clear the aggressive polling after 30 seconds
+    // Absolute timeout after 30 seconds to ensure we don't poll forever
     const clearAggressive = setTimeout(() => {
       console.log(`Ending aggressive polling for goal: ${recentlyCreatedGoalId}`);
       setRecentlyCreatedGoalId(null);
@@ -94,11 +117,13 @@ const GoalsTab = () => {
       clearInterval(aggressiveInterval);
       clearTimeout(clearAggressive);
     };
-  }, [recentlyCreatedGoalId, refreshGoalImage]);
+  }, [recentlyCreatedGoalId, refreshGoalImage, loadedGoalImages]);
 
-  // Regular polling for all goals with loading images
+  // Regular polling for all goals with loading images - but only those not marked as loaded
   useEffect(() => {
-    const loadingGoals = goals.filter(goal => goal.image_loading);
+    const loadingGoals = goals.filter(goal => 
+      goal.image_loading && !loadedGoalImages.has(goal.id)
+    );
     
     if (loadingGoals.length === 0) return;
     
@@ -109,7 +134,7 @@ const GoalsTab = () => {
       let shouldRefresh = false;
       
       for (const goal of loadingGoals) {
-        if (!goal.image_loading) continue;
+        if (!goal.image_loading || loadedGoalImages.has(goal.id)) continue;
         
         try {
           console.log(`Checking image status for goal: ${goal.id}`);
@@ -138,6 +163,9 @@ const GoalsTab = () => {
               image_refresh: true
             });
             
+            // Mark this goal as loaded to stop further refreshes
+            setLoadedGoalImages(prev => new Set(prev).add(goal.id));
+            
             shouldRefresh = true;
           }
         } catch (err) {
@@ -152,12 +180,15 @@ const GoalsTab = () => {
     }, 3000); // Regular check every 3 seconds
     
     return () => clearInterval(pollInterval);
-  }, [goals, updateGoalInState]);
+  }, [goals, updateGoalInState, loadedGoalImages]);
 
-  // Check for any Replicate images that are still loading
+  // Check for any Replicate images that are still loading but only once
   useEffect(() => {
     const checkReplicateImages = async () => {
       for (const goal of goals) {
+        // Skip already loaded goals
+        if (loadedGoalImages.has(goal.id)) continue;
+        
         // If the goal has a Replicate image URL and is marked as loading
         if (goal.image_url?.includes('replicate.delivery') && goal.image_loading) {
           console.log(`Checking Replicate image for goal: ${goal.id}`);
@@ -177,16 +208,22 @@ const GoalsTab = () => {
                 image_url: `${goal.image_url}?t=${cacheKey}`,
                 image_refresh: true
               });
+              
+              // Mark as loaded to prevent future refreshes
+              setLoadedGoalImages(prev => new Set(prev).add(goal.id));
             };
             
             // Set a timeout to mark as non-loading after timeout
             setTimeout(() => {
-              if (goal.image_loading) {
+              if (goal.image_loading && !loadedGoalImages.has(goal.id)) {
                 console.log(`Timeout waiting for image: ${goal.id}`);
                 updateGoalInState({ 
                   id: goal.id, 
                   image_loading: false
                 });
+                
+                // Even on timeout, mark as "loaded" to prevent infinite refresh attempts
+                setLoadedGoalImages(prev => new Set(prev).add(goal.id));
               }
             }, 5000);
           } catch (err) {
@@ -195,6 +232,9 @@ const GoalsTab = () => {
               id: goal.id, 
               image_loading: false
             });
+            
+            // Mark as "loaded" even on error to prevent infinite refresh attempts
+            setLoadedGoalImages(prev => new Set(prev).add(goal.id));
           }
         }
       }
@@ -203,7 +243,7 @@ const GoalsTab = () => {
     if (goals.length > 0) {
       checkReplicateImages();
     }
-  }, [goals, updateGoalInState]);
+  }, [goals, updateGoalInState, loadedGoalImages]);
 
   const toggleGoalExpand = async (goalId: string) => {
     if (expandedGoalId === goalId) {

@@ -15,9 +15,9 @@ interface GoalImageProps {
 const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps) => {
   const [shouldForceRefresh, setShouldForceRefresh] = useState(false);
   
-  // Detect when to force refresh based on URL or props
+  // Detect when to force refresh based on URL or props, but only once
   useEffect(() => {
-    if (forceRefresh || (imageUrl && imageUrl.includes('force='))) {
+    if ((forceRefresh || (imageUrl && imageUrl.includes('force='))) && !shouldForceRefresh) {
       console.log(`Forcing refresh for goal detail image`);
       setShouldForceRefresh(true);
       
@@ -28,13 +28,14 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
       
       return () => clearTimeout(timer);
     }
-  }, [imageUrl, forceRefresh]);
+  }, [imageUrl, forceRefresh, shouldForceRefresh]);
 
   const { 
     displayImageUrl, 
     isLoading: imageLoading, 
     hasError, 
-    retryLoading 
+    retryLoading,
+    hasLoaded
   } = useImageLoader({
     imageUrl,
     title,
@@ -42,7 +43,8 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
     forceRefresh: shouldForceRefresh
   });
 
-  const showLoader = isLoading || (imageLoading && !imageUrl?.startsWith('/lovable-uploads/'));
+  // Only show loader when initially loading and not already loaded
+  const showLoader = isLoading || (imageLoading && !hasLoaded && !imageUrl?.startsWith('/lovable-uploads/'));
   
   return (
     <div className="relative">
@@ -55,8 +57,8 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
         >
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
           
-          {/* Hidden image to detect load/error events */}
-          {!imageUrl?.startsWith('/lovable-uploads/') && (
+          {/* Hidden image to detect load/error events - only if not already loaded */}
+          {!hasLoaded && !imageUrl?.startsWith('/lovable-uploads/') && (
             <img 
               src={displayImageUrl}
               alt=""
