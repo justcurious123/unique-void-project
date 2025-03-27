@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getDefaultImage, preloadGoalImage, applyImagePropertiesToGoals } from "@/utils/goalImages";
+import { getDefaultImage, preloadGoalImage, applyImagePropertiesToGoals, validateImageUrl } from "@/utils/goalImages";
 
 export interface Goal {
   id: string;
@@ -52,26 +52,40 @@ export const useGoals = () => {
       // Preload images to verify they exist
       if (goalsWithImageState.length > 0) {
         goalsWithImageState.forEach((goal) => {
-          preloadGoalImage(
-            goal,
-            // On success
-            (goalId) => {
-              setGoals(prev => prev.map((g) => 
-                g.id === goalId ? { ...g, image_loading: false } : g
-              ));
-            },
-            // On error
-            (goalId, defaultImg) => {
-              setGoals(prev => prev.map((g) => 
-                g.id === goalId ? { 
-                  ...g, 
-                  image_loading: false, 
-                  image_error: false,
-                  image_url: defaultImg
-                } : g
-              ));
-            }
-          );
+          if (goal.image_loading) {
+            preloadGoalImage(
+              goal,
+              // On success
+              (goalId) => {
+                setGoals(prev => prev.map((g) => 
+                  g.id === goalId ? { ...g, image_loading: false } : g
+                ));
+              },
+              // On error
+              (goalId, defaultImg) => {
+                // Update in the database too, to avoid future errors
+                supabase
+                  .from('goals')
+                  .update({ image_url: defaultImg })
+                  .eq('id', goalId)
+                  .then(() => {
+                    console.log(`Updated goal ${goalId} with default image after load failure`);
+                  })
+                  .catch(err => {
+                    console.error('Failed to update goal with default image:', err);
+                  });
+
+                setGoals(prev => prev.map((g) => 
+                  g.id === goalId ? { 
+                    ...g, 
+                    image_loading: false, 
+                    image_error: false,
+                    image_url: defaultImg
+                  } : g
+                ));
+              }
+            );
+          }
         });
       }
     } catch (error: any) {
@@ -105,7 +119,8 @@ export const useGoals = () => {
             target_date: newGoal.target_date,
             user_id: userId,
             completed: false,
-            image_url: defaultImageUrl // Set a default image
+            image_url: defaultImageUrl, // Set a default image
+            image_loading: true // Mark as loading since we'll generate a custom image
           }
         ])
         .select();
@@ -116,7 +131,7 @@ export const useGoals = () => {
         // Initialize new goals with image states
         const newGoalsWithState = data.map(goal => ({
           ...goal,
-          image_loading: false,
+          image_loading: true, // We're going to generate an image
           image_error: false
         }));
         

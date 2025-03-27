@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Loader2, ExternalLink } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Loader2, ExternalLink, ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
 import type { Task } from "@/hooks/useTasks";
 import { CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { Collapsible } from "@/components/ui/collapsible";
+import { getDefaultImage } from "@/utils/goalImages";
 
 interface GoalCardProps {
   goal: Goal;
@@ -33,15 +34,29 @@ const GoalCard: React.FC<GoalCardProps> = ({
   handleGoalTitleClick
 }) => {
   const [imageRetries, setImageRetries] = useState<number>(0);
+  const [useFallback, setUseFallback] = useState<boolean>(false);
   const isImageLoading = goal.image_loading === true;
   const hasImage = !!goal.image_url;
   const retryKey = `${goal.id}-${imageRetries}`;
 
+  // Handle image load errors
   const handleImageError = () => {
-    console.log(`Image failed to load for goal: ${goal.id}, attempting retry`);
-    if (imageRetries < 2) {  // Limit retries to avoid infinite loops
+    console.log(`Image failed to load for goal: ${goal.id}, attempting retry or fallback`);
+    if (imageRetries < 2) {
+      // Try a couple of times with the original URL
       setImageRetries(prev => prev + 1);
+    } else {
+      // After retries, use fallback image
+      setUseFallback(true);
     }
+  };
+
+  // Get the appropriate image URL to display
+  const getImageUrl = () => {
+    if (useFallback || !goal.image_url) {
+      return getDefaultImage(goal.title);
+    }
+    return `${goal.image_url}?key=${retryKey}`;
   };
 
   return (
@@ -64,12 +79,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
               <div 
                 className="relative w-full h-24 bg-cover bg-center" 
                 style={{
-                  backgroundImage: `url(${goal.image_url}?key=${retryKey})`,
+                  backgroundImage: `url(${getImageUrl()})`,
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
                 <img 
-                  src={`${goal.image_url}?key=${retryKey}`}
+                  src={getImageUrl()}
                   alt=""
                   className="hidden" // Hidden image used for error detection
                   onError={handleImageError}

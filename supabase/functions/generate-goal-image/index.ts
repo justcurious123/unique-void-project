@@ -94,7 +94,7 @@ serve(async (req) => {
             aspect_ratio: "16:9", // Changed to 16:9 for better card display
             output_format: "webp",
             output_quality: 90,  // Increased quality
-            num_inference_steps: 8  // Increased steps for better quality
+            num_inference_steps: 4  // Reduced to 4 to fix validation error
           }
         }
       );

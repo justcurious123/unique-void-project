@@ -27,36 +27,70 @@ export const getDefaultImage = (goalTitle: string): string => {
   return DEFAULT_IMAGES[positiveHash % DEFAULT_IMAGES.length];
 };
 
+export const validateImageUrl = async (url: string): Promise<boolean> => {
+  try {
+    // Simple HEAD request to check if the image exists and is accessible
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch (error) {
+    console.error('Error validating image URL:', error);
+    return false;
+  }
+};
+
 export const preloadGoalImage = (
   goal: { id: string; title: string; image_url?: string },
   onSuccess: (goalId: string) => void,
   onError: (goalId: string, defaultImage: string) => void
 ) => {
-  if (goal.image_url) {
-    const img = new Image();
-    img.onload = () => {
-      onSuccess(goal.id);
-    };
-    img.onerror = () => {
-      console.error(`Failed to load image for goal: ${goal.title}`);
-      // If the Supabase image fails, use our default image instead
-      const defaultImg = getDefaultImage(goal.title);
-      onError(goal.id, defaultImg);
-    };
-    img.src = goal.image_url;
+  if (!goal.image_url) {
+    const defaultImg = getDefaultImage(goal.title);
+    onError(goal.id, defaultImg);
+    return;
   }
+
+  // Check if the image URL starts with "/lovable-uploads/" 
+  // which means it's already a fallback image from our public directory
+  if (goal.image_url.startsWith('/lovable-uploads/')) {
+    onSuccess(goal.id);
+    return;
+  }
+
+  // For remote URLs, preload to check validity
+  const img = new Image();
+  
+  img.onload = () => {
+    onSuccess(goal.id);
+  };
+  
+  img.onerror = () => {
+    console.error(`Failed to load image for goal: ${goal.title}`);
+    // If the Supabase image fails, use our default image instead
+    const defaultImg = getDefaultImage(goal.title);
+    onError(goal.id, defaultImg);
+  };
+
+  // Add a random query param to avoid caching issues
+  img.src = `${goal.image_url}?t=${Date.now()}`;
 };
 
 // Apply image properties to goals
 export const applyImagePropertiesToGoals = (goals: any[]) => {
   return goals.map(goal => {
-    // Assign a default image if none exists or apply the existing one
-    const imageUrl = goal.image_url || getDefaultImage(goal.title);
+    let imageUrl = goal.image_url;
+    
+    // If no image_url, assign a default
+    if (!imageUrl) {
+      imageUrl = getDefaultImage(goal.title);
+    }
+    
+    // For explicitly local URLs (from our public dir), mark as non-loading
+    const isLocalImage = imageUrl && imageUrl.startsWith('/lovable-uploads/');
     
     return {
       ...goal,
       image_url: imageUrl,
-      image_loading: true,
+      image_loading: !isLocalImage, // Only set loading true for non-local images
       image_error: false
     };
   });
