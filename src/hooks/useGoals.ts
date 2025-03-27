@@ -154,6 +154,9 @@ export const useGoals = () => {
             { 
               goal_id: data[0].id,
               is_loading: true 
+            } as {
+              goal_id: string;
+              is_loading: boolean;
             }
           );
           
