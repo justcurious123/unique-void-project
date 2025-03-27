@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getDefaultImage } from '@/utils/goalImages';
 
 interface UseImageLoaderProps {
@@ -14,7 +14,7 @@ interface UseImageLoaderResult {
   isLoading: boolean;
   hasError: boolean;
   retryLoading: () => void;
-  hasLoaded: boolean; // New property to track successful loads
+  hasLoaded: boolean;
 }
 
 export function useImageLoader({
@@ -25,95 +25,105 @@ export function useImageLoader({
 }: UseImageLoaderProps): UseImageLoaderResult {
   const [isLoading, setIsLoading] = useState<boolean>(isInitiallyLoading);
   const [hasError, setHasError] = useState<boolean>(false);
-  const [hasLoaded, setHasLoaded] = useState<boolean>(false); // Track successful loads
-  const [attempts, setAttempts] = useState<number>(0);
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const [cacheKey, setCacheKey] = useState<string>(`${Date.now()}`);
-  const previousImageUrl = useRef<string | null>(null);
   
-  // Reset cache key when forceRefresh is true but only if we haven't loaded yet
-  useEffect(() => {
-    if (forceRefresh && !hasLoaded) {
-      setCacheKey(`${Date.now()}-refresh-${Math.random()}`);
-    }
-  }, [forceRefresh, hasLoaded]);
+  // Get default image if null or error
+  const defaultImage = title ? getDefaultImage(title) : '';
   
-  // Reset states when imageUrl changes
-  useEffect(() => {
-    if (!imageUrl) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Skip reloading if we already successfully loaded this exact URL
-    if (imageUrl === previousImageUrl.current && hasLoaded && !forceRefresh) {
-      return;
-    }
-    
-    previousImageUrl.current = imageUrl;
-    
-    // For local images, don't show loading state
-    if (imageUrl.startsWith('/lovable-uploads/')) {
+  // Function to load and check image
+  const loadImage = useCallback((url: string, newCacheKey: string) => {
+    // Skip if it's a local image from public directory
+    if (url.startsWith('/lovable-uploads/')) {
       setIsLoading(false);
       setHasLoaded(true);
-    } else if (imageUrl.includes('replicate.delivery')) {
-      // Only reset loading state if we haven't loaded yet or if forced
-      if (!hasLoaded || forceRefresh) {
-        setHasError(false);
-        setIsLoading(true);
-        setHasLoaded(false);
-        
-        // Create an image element to test loading
-        const img = new Image();
-        
-        // Set up a timeout to prevent infinite waiting
-        const timeoutId = setTimeout(() => {
-          console.log(`Image load timeout for: ${imageUrl}`);
-          setHasError(true);
-          setIsLoading(false);
-        }, 10000); // 10 second timeout
-        
-        img.onload = () => {
-          clearTimeout(timeoutId);
-          console.log(`Image loaded successfully: ${imageUrl}`);
-          setIsLoading(false);
-          setHasError(false);
-          setHasLoaded(true); // Mark as successfully loaded
-        };
-        
-        img.onerror = () => {
-          clearTimeout(timeoutId);
-          console.error(`Error loading image: ${imageUrl}`);
-          setHasError(true);
-          setIsLoading(false);
-        };
-        
-        // Add a cache-busting parameter
-        img.src = `${imageUrl}?t=${cacheKey}`;
-      }
-    } else {
-      // For other remote images
-      if (!hasLoaded || forceRefresh) {
-        setIsLoading(isInitiallyLoading);
-      }
-    }
-  }, [imageUrl, cacheKey, isInitiallyLoading, forceRefresh, hasLoaded]);
-
-  const retryLoading = () => {
-    if (imageUrl) {
-      console.log('Retrying image load...');
-      setAttempts(prev => prev + 1);
-      setCacheKey(`${Date.now()}-retry-${attempts}`);
       setHasError(false);
-      setIsLoading(true);
-      setHasLoaded(false); // Reset loaded state on retry
+      return;
     }
-  };
-
-  // Get the final image URL to display
+    
+    // For remote URLs, test loading
+    setIsLoading(true);
+    setHasLoaded(false);
+    setHasError(false);
+    
+    const img = new Image();
+    
+    // Set up a timeout to prevent infinite waiting
+    const timeoutId = setTimeout(() => {
+      console.log(`Image load timeout for: ${url}`);
+      setHasError(true);
+      setIsLoading(false);
+    }, 10000); // 10 second timeout
+    
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      console.log(`Image loaded successfully: ${url}`);
+      setIsLoading(false);
+      setHasError(false);
+      setHasLoaded(true);
+    };
+    
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      console.error(`Error loading image: ${url}`);
+      setHasError(true);
+      setIsLoading(false);
+    };
+    
+    // Add a cache-busting parameter
+    img.src = `${url}${url.includes('?') ? '&' : '?'}t=${newCacheKey}`;
+  }, []);
+  
+  // Handle initial load and URL changes
+  useEffect(() => {
+    // If no image URL, use default and skip loading
+    if (!imageUrl) {
+      setIsLoading(false);
+      setHasError(false);
+      return;
+    }
+    
+    // Skip reloading if already loaded and not forced refresh
+    if (hasLoaded && !forceRefresh && !imageUrl.includes('force=')) {
+      return;
+    }
+    
+    // Generate a new cache key for forced refreshes
+    const newCacheKey = forceRefresh || imageUrl.includes('force=') 
+      ? `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      : cacheKey;
+    
+    if (forceRefresh || cacheKey !== newCacheKey) {
+      setCacheKey(newCacheKey);
+    }
+    
+    // Handle local images immediately
+    if (imageUrl.startsWith('/lovable-uploads/')) {
+      setIsLoading(false);
+      setHasError(false);
+      setHasLoaded(true);
+      return;
+    }
+    
+    // Load remote images
+    loadImage(imageUrl, newCacheKey);
+  }, [imageUrl, forceRefresh, loadImage, cacheKey, hasLoaded]);
+  
+  // Function to retry loading
+  const retryLoading = useCallback(() => {
+    if (!imageUrl) return;
+    
+    console.log('Retrying image load...');
+    const newCacheKey = `${Date.now()}-retry-${Math.random().toString(36).substring(2, 9)}`;
+    setCacheKey(newCacheKey);
+    loadImage(imageUrl, newCacheKey);
+  }, [imageUrl, loadImage]);
+  
+  // Determine the final URL to display
   const displayImageUrl = hasError || !imageUrl 
-    ? (title ? getDefaultImage(title) : '')
+    ? defaultImage
     : `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${cacheKey}`;
-
+  
   return {
     displayImageUrl,
     isLoading,

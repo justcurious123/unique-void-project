@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useImageLoader } from '@/hooks/useImageLoader';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface GoalCardImageProps {
   imageUrl: string | null;
@@ -13,23 +14,6 @@ interface GoalCardImageProps {
 }
 
 const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: GoalCardImageProps) => {
-  const [shouldForceRefresh, setShouldForceRefresh] = useState(false);
-  
-  // Detect when to force refresh based on URL or props, but only once
-  useEffect(() => {
-    if ((forceRefresh || (imageUrl && imageUrl.includes('force='))) && !shouldForceRefresh) {
-      console.log(`Forcing refresh for goal image: ${goalId}`);
-      setShouldForceRefresh(true);
-      
-      // Reset after a moment to avoid constant refreshing
-      const timer = setTimeout(() => {
-        setShouldForceRefresh(false);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [imageUrl, goalId, forceRefresh, shouldForceRefresh]);
-
   const { 
     displayImageUrl, 
     isLoading: imageLoading, 
@@ -40,11 +24,11 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
     imageUrl,
     title,
     isInitiallyLoading: isLoading,
-    forceRefresh: shouldForceRefresh
+    forceRefresh
   });
 
-  // Once image has loaded, don't show loader anymore
-  const showLoader = isLoading || (imageLoading && !hasLoaded && !imageUrl?.startsWith('/lovable-uploads/'));
+  // Only show loader when initially loading or during active loading
+  const showLoader = isLoading || (imageLoading && !hasLoaded);
 
   const handleRetryClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,12 +36,17 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
     retryLoading();
   };
 
+  // Log when we detect a force refresh
+  useEffect(() => {
+    if (forceRefresh) {
+      console.log(`Force refreshing image for goal: ${goalId}`);
+    }
+  }, [forceRefresh, goalId]);
+
   return (
     <div className="relative w-full h-24 bg-slate-100">
       {showLoader ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <Skeleton className="absolute inset-0 w-full h-24" />
       ) : (
         <div 
           className="relative w-full h-24 bg-cover bg-center" 
@@ -67,17 +56,7 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
         >
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
           
-          {/* Hidden image to detect load/error events - only add if not already loaded */}
-          {!hasLoaded && (
-            <img 
-              src={displayImageUrl}
-              alt=""
-              className="hidden"
-              onError={() => true}
-            />
-          )}
-          
-          {hasError && imageUrl?.includes('replicate.delivery') && (
+          {hasError && !imageUrl?.startsWith('/lovable-uploads/') && (
             <Button 
               variant="secondary" 
               size="icon"
@@ -86,6 +65,12 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
             >
               <RefreshCw className="h-3 w-3" />
             </Button>
+          )}
+          
+          {imageLoading && (
+            <div className="absolute top-2 left-2">
+              <Loader2 className="h-4 w-4 animate-spin text-white drop-shadow-md" />
+            </div>
           )}
         </div>
       )}
