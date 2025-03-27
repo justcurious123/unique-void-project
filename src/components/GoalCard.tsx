@@ -1,16 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import React from 'react';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/types/goalTypes";
 import type { Task } from "@/hooks/useTasks";
-import { CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useNavigate } from "react-router-dom";
-import { Collapsible } from "@/components/ui/collapsible";
-import { getDefaultImage } from "@/utils/goalImages";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import GoalCardImage from './goal-card/GoalCardImage';
+import GoalCardHeader from './goal-card/GoalCardHeader';
+import GoalCardProgress from './goal-card/GoalCardProgress';
+import GoalCardContent from './goal-card/GoalCardContent';
 
 interface GoalCardProps {
   goal: Goal;
@@ -33,99 +31,6 @@ const GoalCard: React.FC<GoalCardProps> = ({
   isTasksLoading,
   handleGoalTitleClick
 }) => {
-  const [imageRetries, setImageRetries] = useState<number>(0);
-  const [useFallback, setUseFallback] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(goal.image_loading === true);
-  const [cacheKey, setCacheKey] = useState<string>(`${Date.now()}`);
-  
-  // Reset states when goal changes
-  useEffect(() => {
-    setImageRetries(0);
-    setUseFallback(false);
-    setIsLoading(goal.image_loading === true);
-    setCacheKey(`${Date.now()}`);
-  }, [goal.id, goal.image_loading]);
-
-  // Handle Replicate images loading
-  useEffect(() => {
-    if (goal.image_url?.includes('replicate.delivery')) {
-      console.log(`Monitoring Replicate image for goal: ${goal.id}`);
-      
-      if (isLoading) {
-        const img = new Image();
-        const newCacheKey = `${Date.now()}-${imageRetries}`;
-        setCacheKey(newCacheKey);
-        
-        const timeoutId = setTimeout(() => {
-          console.log(`Image load timeout for: ${goal.id}`);
-          setIsLoading(false);
-          
-          // If we've tried a few times and it's still not working, use fallback
-          if (imageRetries > 1) {
-            setUseFallback(true);
-          } else {
-            // Try again
-            setImageRetries(prev => prev + 1);
-          }
-        }, 5000);
-        
-        img.onload = () => {
-          clearTimeout(timeoutId);
-          console.log(`Image loaded successfully for goal: ${goal.id}`);
-          setIsLoading(false);
-          setUseFallback(false);
-        };
-        
-        img.onerror = () => {
-          clearTimeout(timeoutId);
-          console.error(`Error loading image for goal: ${goal.id}`);
-          
-          if (imageRetries < 2) {
-            setImageRetries(prev => prev + 1);
-          } else {
-            setIsLoading(false);
-            setUseFallback(true);
-          }
-        };
-        
-        img.src = `${goal.image_url}?t=${newCacheKey}`;
-      }
-    }
-  }, [goal.image_url, goal.id, isLoading, imageRetries]);
-
-  const handleImageError = () => {
-    console.log(`Image failed to load for goal: ${goal.id}`);
-    
-    if (imageRetries < 3) {
-      setImageRetries(prev => prev + 1);
-      setCacheKey(`${Date.now()}-${imageRetries}`);
-    } else {
-      setUseFallback(true);
-    }
-    return true;
-  };
-
-  const retryImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    console.log(`Manually retrying image for goal: ${goal.id}`);
-    setUseFallback(false);
-    setImageRetries(prev => prev + 1);
-    setIsLoading(true);
-    setCacheKey(`${Date.now()}-retry`);
-  };
-
-  const getImageUrl = () => {
-    if (useFallback || !goal.image_url) {
-      return getDefaultImage(goal.title);
-    }
-    
-    if (goal.image_url.includes('replicate.delivery')) {
-      return `${goal.image_url}?t=${cacheKey}`;
-    }
-    
-    return goal.image_url;
-  };
-
   return (
     <Collapsible
       key={goal.id}
@@ -136,113 +41,41 @@ const GoalCard: React.FC<GoalCardProps> = ({
         goal.completed ? "border-green-200 bg-green-50/30" : "",
         "overflow-hidden"
       )}>
-        <div className="relative w-full h-24 bg-slate-100">
-          {isLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div 
-              className="relative w-full h-24 bg-cover bg-center" 
-              style={{
-                backgroundImage: `url(${getImageUrl()})`,
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
-              
-              <img 
-                src={getImageUrl()}
-                alt=""
-                className="hidden"
-                onError={handleImageError}
-              />
-              
-              {useFallback && goal.image_url?.includes('replicate.delivery') && (
-                <Button 
-                  variant="secondary" 
-                  size="icon"
-                  onClick={retryImage}
-                  className="absolute top-2 right-2 h-6 w-6 bg-white/80 backdrop-blur-sm"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        <GoalCardImage 
+          imageUrl={goal.image_url}
+          title={goal.title}
+          goalId={goal.id}
+          isLoading={goal.image_loading === true}
+        />
         
         <CardHeader className={cn(
           "pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5",
-          !isLoading ? "relative z-10 -mt-6" : ""
+          "relative z-10 -mt-6"
         )}>
-          <div className="flex justify-between items-start">
-            <div onClick={() => handleGoalTitleClick(goal.id)} className="cursor-pointer">
-              <CardTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg group">
-                {goal.completed && <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />}
-                <span>{goal.title}</span>
-                <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </CardTitle>
-              <CardDescription className="mt-1 text-xs sm:text-sm">{goal.description}</CardDescription>
-            </div>
-            <div className="flex gap-1 sm:gap-2">
-              <Button variant="outline" size="icon" onClick={() => onDeleteGoal(goal.id)} 
-                className="h-7 w-7 sm:h-8 sm:w-8">
-                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </Button>
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  aria-expanded={isExpanded}
-                  className="h-7 w-7 sm:h-8 sm:w-8"
-                >
-                  <ChevronDown 
-                    className={cn(
-                      "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform duration-200",
-                      isExpanded ? "rotate-180" : ""
-                    )} 
-                  />
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-          </div>
+          <GoalCardHeader 
+            title={goal.title}
+            description={goal.description}
+            isCompleted={goal.completed}
+            isExpanded={isExpanded}
+            goalId={goal.id}
+            onDelete={onDeleteGoal}
+            onTitleClick={handleGoalTitleClick}
+          />
         </CardHeader>
         
         <CardContent className="pb-3 px-3 sm:px-6">
-          <div className="flex justify-between items-center mb-1 sm:mb-2">
-            <span className="text-xs sm:text-sm font-medium">Progress</span>
-            <span className="text-xs sm:text-sm">
-              {progressValue}%
-            </span>
-          </div>
-          <Progress value={progressValue} className="h-1.5 sm:h-2" />
+          <GoalCardProgress progressValue={progressValue} />
         </CardContent>
 
         <CollapsibleContent>
           <CardContent className="pt-0 px-3 sm:px-6 pb-3 sm:pb-5">
-            {isTasksLoading ? (
-              <div className="py-4 sm:py-6 flex justify-center">
-                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="space-y-2 sm:space-y-3">
-                <div className="text-sm text-muted-foreground">
-                  {goal.task_summary ? (
-                    <p>{goal.task_summary}</p>
-                  ) : (
-                    <p>This goal has {tasks.length} tasks. Click on the goal title to view and manage all tasks.</p>
-                  )}
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-xs"
-                  onClick={() => handleGoalTitleClick(goal.id)}
-                >
-                  View All Tasks <ExternalLink className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-            )}
+            <GoalCardContent 
+              taskSummary={goal.task_summary}
+              tasksCount={tasks.length}
+              isTasksLoading={isTasksLoading}
+              onViewAllClick={handleGoalTitleClick}
+              goalId={goal.id}
+            />
           </CardContent>
         </CollapsibleContent>
       </Card>
