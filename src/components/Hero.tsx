@@ -1,11 +1,8 @@
-
 import React, { useEffect, useRef } from "react";
 import { ArrowDown, Target, Map, ListChecks, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 const Hero: React.FC = () => {
   const heroRef = useRef<HTMLDivElement>(null);
-  
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
@@ -15,18 +12,15 @@ const Hero: React.FC = () => {
     }, {
       threshold: 0.1
     });
-    
     if (heroRef.current) {
       observer.observe(heroRef.current);
     }
-    
     return () => {
       if (heroRef.current) {
         observer.unobserve(heroRef.current);
       }
     };
   }, []);
-
   const scrollToFeatures = () => {
     const featuresSection = document.getElementById("features");
     if (featuresSection) {
@@ -35,9 +29,7 @@ const Hero: React.FC = () => {
       });
     }
   };
-
-  return (
-    <section className="relative min-h-screen flex flex-col justify-center px-6 py-20 md:py-28 overflow-hidden">
+  return <section className="relative min-h-screen flex flex-col justify-center px-6 py-20 md:py-28 overflow-hidden">
       {/* Background with subtle gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-white pointer-events-none" />
       
@@ -67,25 +59,16 @@ const Hero: React.FC = () => {
             </p>
             
             <div className="grid grid-cols-2 gap-6 mt-8">
-              <Button 
-                size="lg" 
-                className="text-base px-8 py-6 rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md"
-              >
+              <Button size="lg" className="text-base px-8 py-6 rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">
                 Try Setting Your First Goal Now
               </Button>
-              <p className="text-sm text-foreground/60 italic self-center">
-                It's easier than you think - as easy as seeing your vacation fund grow.
-              </p>
+              <p className="text-sm text-foreground/60 italic self-center">It's easier than you think. 1 - 2 - 3</p>
             </div>
           </div>
           
           {/* Right Column - Image */}
           <div className="relative h-full flex items-center justify-center">
-            <img 
-              src="/lovable-uploads/b495b358-dce2-4e09-a14f-148dcd9749a8.png" 
-              alt="WayToPoint Logo" 
-              className="h-64 md:h-80 mx-auto object-contain animate-float"
-            />
+            <img src="/lovable-uploads/b495b358-dce2-4e09-a14f-148dcd9749a8.png" alt="WayToPoint Logo" className="h-64 md:h-80 mx-auto object-contain animate-float" />
           </div>
         </div>
         
@@ -152,17 +135,11 @@ const Hero: React.FC = () => {
         </div>
         
         <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 animate-bounce cursor-pointer hidden md:block">
-          <button 
-            onClick={scrollToFeatures} 
-            aria-label="Scroll down" 
-            className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-subtle hover:shadow-md transition-all"
-          >
+          <button onClick={scrollToFeatures} aria-label="Scroll down" className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-subtle hover:shadow-md transition-all">
             <ArrowDown className="h-5 w-5 text-primary" />
           </button>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;
