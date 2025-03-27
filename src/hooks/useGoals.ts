@@ -115,22 +115,25 @@ export const useGoals = () => {
       // Assign a default image initially
       const defaultImageUrl = getDefaultImage(newGoal.title);
       
+      // Only include properties that exist in the database table
+      const goalData = {
+        title: newGoal.title,
+        description: newGoal.description,
+        target_date: newGoal.target_date,
+        user_id: userId,
+        completed: false,
+        image_url: defaultImageUrl
+      };
+
       const { data, error } = await supabase
         .from('goals')
-        .insert([
-          { 
-            title: newGoal.title,
-            description: newGoal.description,
-            target_date: newGoal.target_date,
-            user_id: userId,
-            completed: false,
-            image_url: defaultImageUrl, // Set a default image
-            image_loading: true // Mark as loading since we'll generate a custom image
-          }
-        ])
+        .insert([goalData])
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Database error creating goal:', error);
+        throw error;
+      }
       
       if (data) {
         // Initialize new goals with image states
@@ -141,6 +144,17 @@ export const useGoals = () => {
         }));
         
         setGoals([...newGoalsWithState, ...goals]);
+        
+        // Update the database with image_loading state
+        try {
+          await supabase
+            .from('goals')
+            .update({ image_loading: true })
+            .eq('id', data[0].id);
+        } catch (updateError) {
+          console.error('Failed to update image_loading state:', updateError);
+        }
+        
         return data[0];
       }
       return null;

@@ -71,6 +71,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_loading: boolean | null
           image_url: string | null
           target_date: string | null
           task_summary: string | null
@@ -82,6 +83,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_loading?: boolean | null
           image_url?: string | null
           target_date?: string | null
           task_summary?: string | null
@@ -93,6 +95,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_loading?: boolean | null
           image_url?: string | null
           target_date?: string | null
           task_summary?: string | null
