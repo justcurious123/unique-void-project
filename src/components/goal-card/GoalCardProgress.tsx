@@ -7,15 +7,18 @@ interface GoalCardProgressProps {
 }
 
 const GoalCardProgress = ({ progressValue }: GoalCardProgressProps) => {
+  // Ensure progressValue is a valid number
+  const safeProgressValue = isNaN(progressValue) ? 0 : progressValue;
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-1 sm:mb-2">
         <span className="text-xs sm:text-sm font-medium">Progress</span>
         <span className="text-xs sm:text-sm">
-          {progressValue}%
+          {safeProgressValue}%
         </span>
       </div>
-      <Progress value={progressValue} className="h-1.5 sm:h-2" />
+      <Progress value={safeProgressValue} className="h-1.5 sm:h-2" />
     </div>
   );
 };
