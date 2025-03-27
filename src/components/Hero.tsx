@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from "react";
-import { ArrowDown, Target, Map, Steps, BarChart } from "lucide-react";
+import { ArrowDown, Target, Map, ListChecks, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Hero: React.FC = () => {
@@ -121,7 +121,7 @@ const Hero: React.FC = () => {
             {/* Benefit 3 */}
             <div className="bg-white/50 backdrop-blur-sm p-6 rounded-xl shadow-subtle hover:shadow-md transition-all">
               <div className="bg-primary/10 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4 mx-auto">
-                <Steps className="h-8 w-8 text-primary" />
+                <ListChecks className="h-8 w-8 text-primary" />
               </div>
               <h4 className="text-lg font-semibold mb-2 text-center">Set Meaningful Milestones</h4>
               <p className="text-foreground/70 text-center">
