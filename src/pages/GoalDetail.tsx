@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import TaskQuiz from '@/components/TaskQuiz';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { getDefaultImage } from '@/utils/goalImages';
+import { getDefaultImage, validateImageUrl } from '@/utils/goalImages';
 import GoalImage from '@/components/goal-detail/GoalImage';
 import GoalProgress from '@/components/goal-detail/GoalProgress';
 import TasksSection from '@/components/goal-detail/TasksSection';
@@ -42,21 +42,27 @@ const GoalDetail = () => {
           
         if (error) throw error;
         
+        // Set default image if none exists
         if (!data.image_url) {
           data.image_url = getDefaultImage(data.title);
         }
         
-        setImageLoading(true);
-        const img = new Image();
-        img.onload = () => {
-          setImageLoading(false);
-        };
-        img.onerror = () => {
-          console.log("Image failed to load in GoalDetail, using default");
-          data.image_url = getDefaultImage(data.title);
-          setImageLoading(false);
-        };
-        img.src = data.image_url;
+        // For external URLs, validate them before setting
+        if (data.image_url && !data.image_url.startsWith('/lovable-uploads/')) {
+          setImageLoading(true);
+          try {
+            const isValid = await validateImageUrl(data.image_url);
+            if (!isValid) {
+              console.log("Invalid image URL, using default");
+              data.image_url = getDefaultImage(data.title);
+            }
+          } catch (error) {
+            console.error("Error validating image URL:", error);
+            data.image_url = getDefaultImage(data.title);
+          } finally {
+            setImageLoading(false);
+          }
+        }
         
         setGoalData(data);
       } catch (error: any) {
