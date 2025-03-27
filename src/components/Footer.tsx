@@ -8,8 +8,13 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-4">
-            <Link to="/" className="text-xl font-medium tracking-tight">
-              Essence
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/lovable-uploads/e469a406-0cc2-4a24-a75c-353e5c1de348.png" 
+                alt="WayToPoint Logo" 
+                className="h-8 mr-2"
+              />
+              <span className="text-xl font-medium tracking-tight">WayToPoint</span>
             </Link>
             <p className="text-foreground/70 text-sm">
               A minimalist approach to design that focuses on simplicity and elegance.
@@ -67,7 +72,7 @@ const Footer: React.FC = () => {
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-12 mt-12 border-t border-border">
           <p className="text-sm text-foreground/70">
-            © {new Date().getFullYear()} Essence. All rights reserved.
+            © {new Date().getFullYear()} WayToPoint. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             {["Twitter", "Instagram", "LinkedIn", "GitHub"].map((item) => (

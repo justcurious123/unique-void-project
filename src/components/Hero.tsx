@@ -46,6 +46,14 @@ const Hero: React.FC = () => {
         ref={heroRef}
         className="relative max-w-5xl mx-auto text-center transition-all duration-1000 opacity-0 translate-y-4 pt-20"
       >
+        <div className="inline-block mb-6">
+          <img 
+            src="/lovable-uploads/e469a406-0cc2-4a24-a75c-353e5c1de348.png" 
+            alt="WayToPoint Logo" 
+            className="h-20 mx-auto mb-4"
+          />
+        </div>
+        
         <div className="inline-block mb-4 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide">
           Introducing a new standard
         </div>
