@@ -66,6 +66,7 @@ export const useGoals = () => {
     isLoading,
     createGoal,
     deleteGoal,
-    refreshGoals
+    refreshGoals,
+    updateGoalInState
   };
 };

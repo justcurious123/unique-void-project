@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { GoalList } from "@/components/GoalList";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import CreateGoalDialog from "./CreateGoalDialog";
+import { toast } from "sonner";
 
 const GoalsTab = () => {
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
@@ -12,7 +14,8 @@ const GoalsTab = () => {
     goals,
     createGoal,
     deleteGoal,
-    refreshGoals
+    refreshGoals,
+    updateGoalInState
   } = useGoals();
   
   const {
@@ -31,6 +34,54 @@ const GoalsTab = () => {
       }));
     }
   }, [expandedGoalId, tasks]);
+
+  // Check for any Replicate images that are still loading
+  useEffect(() => {
+    const checkReplicateImages = async () => {
+      for (const goal of goals) {
+        // If the goal has a Replicate image URL and is marked as loading
+        if (goal.image_url?.includes('replicate.delivery') && goal.image_loading) {
+          console.log(`Checking Replicate image for goal: ${goal.id}`);
+          
+          try {
+            // Try to preload the image
+            const img = new Image();
+            img.src = `${goal.image_url}?t=${Date.now()}`;
+            
+            img.onload = () => {
+              console.log(`Replicate image loaded for goal: ${goal.id}`);
+              // Update the goal's loading state in local state
+              updateGoalInState({ 
+                id: goal.id, 
+                image_loading: false
+              });
+            };
+            
+            // Set a timeout to mark as non-loading after 10 seconds regardless
+            setTimeout(() => {
+              if (goal.image_loading) {
+                console.log(`Timeout waiting for image: ${goal.id}`);
+                updateGoalInState({ 
+                  id: goal.id, 
+                  image_loading: false
+                });
+              }
+            }, 10000);
+          } catch (err) {
+            console.error(`Error checking image for goal ${goal.id}:`, err);
+            updateGoalInState({ 
+              id: goal.id, 
+              image_loading: false
+            });
+          }
+        }
+      }
+    };
+    
+    if (goals.length > 0) {
+      checkReplicateImages();
+    }
+  }, [goals]);
 
   const toggleGoalExpand = async (goalId: string) => {
     if (expandedGoalId === goalId) {
@@ -52,6 +103,8 @@ const GoalsTab = () => {
 
   const handleGoalCreated = (goalId: string) => {
     setExpandedGoalId(goalId);
+    // Show a message about the image
+    toast.info("Your goal image is being generated and will appear shortly");
   };
 
   return (

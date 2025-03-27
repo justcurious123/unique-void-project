@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, ChevronDown, CheckCircle, Loader2, ExternalLink, ImageOff } from "lucide-react";
+import { Trash2, ChevronDown, CheckCircle, Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/types/goalTypes";
 import type { Task } from "@/hooks/useTasks";
@@ -35,34 +34,78 @@ const GoalCard: React.FC<GoalCardProps> = ({
 }) => {
   const [imageRetries, setImageRetries] = useState<number>(0);
   const [useFallback, setUseFallback] = useState<boolean>(false);
-  const isImageLoading = goal.image_loading === true;
-  const retryKey = `${goal.id}-${imageRetries}`;
+  const [isLoading, setIsLoading] = useState<boolean>(goal.image_loading === true);
+  const retryKey = `${goal.id}-${imageRetries}-${Date.now()}`;
 
-  // Handle image load errors
+  useEffect(() => {
+    setImageRetries(0);
+    setUseFallback(false);
+    setIsLoading(goal.image_loading === true);
+  }, [goal.id, goal.image_loading]);
+
+  useEffect(() => {
+    if (goal.image_url?.includes('replicate.delivery') && isLoading) {
+      console.log(`Preloading Replicate image for goal: ${goal.id}`);
+      
+      const img = new Image();
+      const timeoutId = setTimeout(() => {
+        console.log(`Image load timeout for: ${goal.id}`);
+        setIsLoading(false);
+      }, 8000);
+      
+      img.onload = () => {
+        clearTimeout(timeoutId);
+        console.log(`Image loaded successfully for goal: ${goal.id}`);
+        setIsLoading(false);
+        setUseFallback(false);
+      };
+      
+      img.onerror = () => {
+        clearTimeout(timeoutId);
+        console.error(`Error loading image for goal: ${goal.id}`);
+        
+        if (imageRetries < 1) {
+          setImageRetries(prev => prev + 1);
+        } else {
+          setIsLoading(false);
+          setUseFallback(true);
+        }
+      };
+      
+      img.src = `${goal.image_url}?t=${Date.now()}`;
+    }
+  }, [goal.image_url, goal.id, isLoading, imageRetries]);
+
   const handleImageError = () => {
-    console.log(`Image failed to load for goal: ${goal.id}, attempting retry or fallback`);
+    console.log(`Image failed to load for goal: ${goal.id}`);
+    
     if (imageRetries < 2) {
-      // Try a couple of times with the original URL
       setImageRetries(prev => prev + 1);
     } else {
-      // After retries, use fallback image
       setUseFallback(true);
     }
+    return true;
   };
 
-  // Get the appropriate image URL to display
+  const retryImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log(`Manually retrying image for goal: ${goal.id}`);
+    setUseFallback(false);
+    setImageRetries(prev => prev + 1);
+    setIsLoading(true);
+  };
+
   const getImageUrl = () => {
     if (useFallback || !goal.image_url) {
       return getDefaultImage(goal.title);
     }
-    return `${goal.image_url}${goal.image_url.includes('?') ? '&' : '?'}key=${retryKey}`;
+    
+    if (goal.image_url.includes('replicate.delivery')) {
+      return `${goal.image_url}?t=${retryKey}`;
+    }
+    
+    return goal.image_url;
   };
-
-  // Force a re-render with a new retry key if we get a new goal
-  useEffect(() => {
-    setImageRetries(0);
-    setUseFallback(false);
-  }, [goal.id]);
 
   return (
     <Collapsible
@@ -74,9 +117,8 @@ const GoalCard: React.FC<GoalCardProps> = ({
         goal.completed ? "border-green-200 bg-green-50/30" : "",
         "overflow-hidden"
       )}>
-        {/* Image Section - Always show and properly handle loading state */}
         <div className="relative w-full h-24 bg-slate-100">
-          {isImageLoading ? (
+          {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
@@ -88,19 +130,31 @@ const GoalCard: React.FC<GoalCardProps> = ({
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
+              
               <img 
                 src={getImageUrl()}
                 alt=""
-                className="hidden" // Hidden image used for error detection
+                className="hidden"
                 onError={handleImageError}
               />
+              
+              {useFallback && goal.image_url?.includes('replicate.delivery') && (
+                <Button 
+                  variant="secondary" 
+                  size="icon"
+                  onClick={retryImage}
+                  className="absolute top-2 right-2 h-6 w-6 bg-white/80 backdrop-blur-sm"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           )}
         </div>
         
         <CardHeader className={cn(
           "pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-5",
-          !isImageLoading ? "relative z-10 -mt-6" : ""
+          !isLoading ? "relative z-10 -mt-6" : ""
         )}>
           <div className="flex justify-between items-start">
             <div onClick={() => handleGoalTitleClick(goal.id)} className="cursor-pointer">

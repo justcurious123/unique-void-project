@@ -47,7 +47,7 @@ export async function generateImage(imagePrompt: string, REPLICATE_API_KEY: stri
     auth: REPLICATE_API_KEY,
   });
   
-  // IMPORTANT: num_inference_steps must be less than or equal to 4 for this model
+  // CRITICAL FIX: num_inference_steps must be less than or equal to 4 for this model
   const output = await replicate.run(
     "black-forest-labs/flux-schnell",
     {
@@ -59,7 +59,7 @@ export async function generateImage(imagePrompt: string, REPLICATE_API_KEY: stri
         aspect_ratio: "16:9",
         output_format: "webp",
         output_quality: 90,
-        num_inference_steps: 4  // Make sure this is set to 4 or less
+        num_inference_steps: 4  // Ensure this is exactly 4
       }
     }
   );
