@@ -77,8 +77,8 @@ export const GoalList: React.FC<GoalListProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
       {goals.map((goal) => {
         const progressValue = progressValues[goal.id] || 0;
-        const hasImage = goal.image_url && !goal.image_error;
-        const isImageLoading = goal.image_loading;
+        const isImageLoading = goal.image_loading === true;
+        const hasImage = !!goal.image_url;
         const retryKey = `${goal.id}-${imageRetries[goal.id] || 0}`;
         
         return (
@@ -106,7 +106,7 @@ export const GoalList: React.FC<GoalListProps> = ({
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
                       <img 
-                        src={goal.image_url} 
+                        src={`${goal.image_url}?key=${retryKey}`}
                         alt=""
                         className="hidden" // Hidden image used for error detection
                         onError={() => handleImageError(goal.id)}
