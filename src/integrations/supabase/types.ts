@@ -182,7 +182,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_goal_image_loading: {
+        Args: {
+          goal_id: string
+          is_loading: boolean
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

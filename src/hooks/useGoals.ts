@@ -151,7 +151,10 @@ export const useGoals = () => {
           // Use a raw query with SQL parameters to set image_loading
           const { error: updateError } = await supabase.rpc(
             'update_goal_image_loading',
-            { goal_id: data[0].id, is_loading: true }
+            { 
+              goal_id: data[0].id,
+              is_loading: true 
+            }
           );
           
           if (updateError) {
