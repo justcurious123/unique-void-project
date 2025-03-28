@@ -62,7 +62,7 @@ const Hero: React.FC = () => {
               <Button size="lg" className="text-base px-8 py-6 rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">
                 Try Setting Your First Goal Now
               </Button>
-              <p className="text-sm text-foreground/60 italic self-center">It's easier than you think. 1 - 2 - 3</p>
+              <p className="text-sm text-foreground/60 italic self-center">It's easier than you think.</p>
             </div>
           </div>
           
