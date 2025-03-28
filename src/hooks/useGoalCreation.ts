@@ -1,8 +1,16 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Goal } from "@/hooks/useGoals";
+import { Goal } from "@/hooks/types/goalTypes";
+import { 
+  generateGoalContent, 
+  generateGoalImage 
+} from "@/utils/goalContentGenerator";
+import { 
+  createTasksWithQuizzes, 
+  generateTaskSummary, 
+  updateGoalWithTaskSummary 
+} from "@/utils/taskProcessor";
 
 interface UseGoalCreationProps {
   refreshGoals: () => void;
@@ -19,146 +27,7 @@ export const useGoalCreation = ({
 }: UseGoalCreationProps) => {
   const [isCreating, setIsCreating] = useState(false);
 
-  // Extract task summary generation to a separate function
-  const generateTaskSummary = async (tasks: any[]) => {
-    try {
-      if (!tasks || tasks.length === 0) return "";
-      const taskTitles = tasks.map(t => t.title).join(", ");
-      
-      const response = await supabase.functions.invoke('generate-task-summary', {
-        body: { tasks }
-      });
-      
-      if (response.error) {
-        throw new Error(`Error generating summary: ${response.error.message}`);
-      }
-      
-      return response.data?.summary || `Includes tasks: ${taskTitles}`;
-    } catch (error) {
-      console.error("Error generating task summary:", error);
-      return "";
-    }
-  };
-
-  // Extract goal content generation to a separate function
-  const generateGoalContent = async (goalTitle: string, goalDescription: string, goalId: string) => {
-    try {
-      console.log(`Generating content for goal: ${goalTitle} (${goalId})`);
-      
-      const response = await supabase.functions.invoke('generate-goal-content', {
-        body: {
-          title: goalTitle,
-          description: goalDescription,
-          goal_id: goalId
-        }
-      });
-      
-      if (response.error) {
-        throw new Error(`Error generating content: ${response.error.message}`);
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error("Error generating goal content:", error);
-      throw error;
-    }
-  };
-
-  // Extract goal image generation to a separate function
-  const generateGoalImage = async (goalTitle: string, goalId: string) => {
-    try {
-      toast.info("Generating goal image...");
-      console.log(`Generating image for goal: ${goalTitle} (${goalId})`);
-      
-      const imageResponse = await supabase.functions.invoke('generate-goal-image', {
-        body: {
-          goalTitle,
-          goalId
-        }
-      });
-      
-      if (imageResponse.error) {
-        console.error("Error generating goal image:", imageResponse.error);
-        toast.error("Failed to generate goal image, but goal was created successfully");
-      } else {
-        console.log("Goal image generated:", imageResponse.data);
-        if (imageResponse.data?.prompt) {
-          console.log("Using custom prompt:", imageResponse.data.prompt);
-        }
-      }
-    } catch (imageError) {
-      console.error("Error invoking image generation:", imageError);
-    }
-  };
-
-  // Extract task creation to a separate function
-  const createTasksWithQuizzes = async (
-    generatedTasks: any[], 
-    quizzes: any[], 
-    goalId: string
-  ) => {
-    try {
-      console.log(`Creating ${generatedTasks.length} tasks for goal ${goalId}`);
-      
-      const taskPromises = generatedTasks.map(async (task, i) => {
-        const taskData = {
-          title: task.title,
-          description: task.description,
-          article_content: task.article_content
-        };
-        
-        const createdTask = await createTask({
-          ...taskData,
-          goal_id: goalId
-        });
-        
-        if (createdTask && createdTask.id) {
-          const quiz = quizzes.find(q => q.task_index === i);
-          if (quiz) {
-            console.log(`Creating quiz for task: ${createdTask.id}`);
-            
-            const { error: quizError } = await supabase.from('quizzes').insert([{
-              task_id: createdTask.id,
-              title: quiz.title,
-              questions: quiz.questions
-            }]);
-            
-            if (quizError) {
-              console.error('Error creating quiz:', quizError);
-            }
-          }
-          return createdTask;
-        }
-        return null;
-      });
-      
-      return (await Promise.all(taskPromises)).filter(Boolean);
-    } catch (error) {
-      console.error("Error creating tasks and quizzes:", error);
-      throw error;
-    }
-  };
-
-  // Extract goal update with task summary to a separate function
-  const updateGoalWithTaskSummary = async (goalId: string, taskSummary: string) => {
-    try {
-      if (!taskSummary) return;
-      
-      console.log(`Updating goal ${goalId} with task summary`);
-      
-      const { error: updateError } = await supabase.from('goals').update({
-        task_summary: taskSummary
-      }).eq('id', goalId);
-      
-      if (updateError) {
-        console.error('Error updating goal with task summary:', updateError);
-      }
-    } catch (error) {
-      console.error("Error updating goal with task summary:", error);
-    }
-  };
-
-  // Main function to handle goal creation, now returning the goal ID for navigation
+  // Main function to handle goal creation, returning the goal ID for navigation
   const handleCreateGoal = async (newGoal: {
     title: string;
     description: string;
@@ -199,7 +68,8 @@ export const useGoalCreation = ({
         const createdTasks = await createTasksWithQuizzes(
           generatedTasks,
           quizzes,
-          createdGoal.id
+          createdGoal.id,
+          createTask
         );
         
         // Step 6: Generate and update task summary
