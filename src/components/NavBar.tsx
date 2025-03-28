@@ -97,7 +97,7 @@ const NavBar: React.FC = () => {
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">
-            {["Features", "Gallery", "About", "Contact"].map(item => <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground" onClick={e => handleNavClick(e, item.toLowerCase())}>
+            {["About", "Contact"].map(item => <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground" onClick={e => handleNavClick(e, item.toLowerCase())}>
                 {item}
               </a>)}
             
@@ -141,7 +141,7 @@ const NavBar: React.FC = () => {
 
         <div className={cn("absolute top-full left-0 right-0 glass-effect shadow-md md:hidden transition-all duration-300 ease-in-out overflow-hidden", mobileMenuOpen ? "max-h-96 py-4" : "max-h-0 py-0")}>
           <nav className="flex flex-col space-y-4 px-4">
-            {["Features", "Gallery", "About", "Contact"].map(item => <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium text-foreground/80 py-2 transition-colors hover:text-foreground" onClick={e => {
+            {["About", "Contact"].map(item => <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium text-foreground/80 py-2 transition-colors hover:text-foreground" onClick={e => {
             handleNavClick(e, item.toLowerCase());
             setMobileMenuOpen(false);
           }}>

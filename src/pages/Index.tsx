@@ -1,7 +1,6 @@
 
 import React, { useEffect } from "react";
 import Hero from "@/components/Hero";
-import Features from "@/components/Features";
 import Footer from "@/components/Footer";
 
 const Index: React.FC = () => {
@@ -17,36 +16,6 @@ const Index: React.FC = () => {
     <div className="min-h-screen">
       <main>
         <Hero />
-        <Features />
-        
-        {/* Gallery Section Placeholder */}
-        <section id="gallery" className="py-24 px-6 bg-secondary/50">
-          <div className="max-w-7xl mx-auto text-center">
-            <div className="inline-block mb-4 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide">
-              Gallery
-            </div>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight mb-6">
-              See it in action
-            </h2>
-            <p className="text-lg text-foreground/70 max-w-2xl mx-auto mb-12">
-              Explore our showcase of beautiful, minimal designs that demonstrate our attention to detail.
-            </p>
-            
-            {/* Gallery grid placeholder */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((item) => (
-                <div 
-                  key={item}
-                  className="aspect-video bg-white/80 rounded-lg shadow-subtle overflow-hidden"
-                >
-                  <div className="w-full h-full bg-primary/5 flex items-center justify-center">
-                    <span className="text-foreground/40">Gallery Item {item}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
         
         {/* About Section */}
         <section id="about" className="py-24 px-6">
