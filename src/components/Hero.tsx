@@ -58,9 +58,9 @@ const Hero: React.FC = () => {
               and the <em>what next</em>? That's where plans fall apart. You deserve a smarter way.
             </p>
             
-            <div className="grid grid-cols-2 gap-6 mt-8">
-              <Button size="lg" className="text-base px-8 py-6 rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">Set Your First Goal Now</Button>
-              <p className="text-sm text-foreground/60 italic self-center">It's easier than you think.</p>
+            <div className="grid grid-cols-2 gap-6 mt-8 my-[30px]">
+              <Button size="lg" className="text-base rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md mx-[43px] my-[6px] px-[27px] py-[19px] text-center">Set Your First Goal</Button>
+              <p className="text-sm text-foreground/60 italic self-center py-0 px-0 mx-0 my-0">It's easier than you think.</p>
             </div>
           </div>
           
