@@ -28,6 +28,7 @@ const GoalDetail = () => {
   const [creationInProgress, setCreationInProgress] = useState(false);
   const [pollingActive, setPollingActive] = useState(false);
   const [lastPollTime, setLastPollTime] = useState(0);
+  const [notFoundError, setNotFoundError] = useState(false);
 
   // Use the custom hook for task ordering
   const { sortedTasks } = useTaskOrder(goalId, tasks, tasksLoading);
@@ -43,7 +44,13 @@ const GoalDetail = () => {
         .eq('id', goalId)
         .single();
           
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Record not found error
+          setNotFoundError(true);
+        }
+        throw error;
+      }
       
       // If we have a Replicate image URL, force a cache-busting parameter
       let finalImageUrl = data.image_url;
@@ -75,14 +82,23 @@ const GoalDetail = () => {
       return contentGenerationInProgress;
     } catch (error: any) {
       console.error("Error fetching goal details:", error);
-      toast.error(`Error fetching goal details: ${error.message}`);
-      navigate('/dashboard');
+      
+      if (!notFoundError) {
+        toast.error(`Error fetching goal details: ${error.message}`);
+      }
+      
+      // Only navigate to dashboard for non-not-found errors to avoid immediate redirect
+      // during goal creation process
+      if (error.code !== 'PGRST116') {
+        navigate('/dashboard');
+      }
+      
       return false;
     } finally {
       setIsLoading(false);
       setImageLoading(false);
     }
-  }, [goalId, navigate, fetchTasks, tasks.length]);
+  }, [goalId, navigate, fetchTasks, tasks.length, notFoundError]);
 
   // Initial data load
   useEffect(() => {
@@ -106,7 +122,7 @@ const GoalDetail = () => {
     if (!pollingActive || !goalId) return;
     
     const POLL_INTERVAL = 3000; // 3 seconds
-    const MAX_POLLING_TIME = 120000; // 2 minutes (as a safety measure)
+    const MAX_POLLING_TIME = 180000; // 3 minutes (as a safety measure)
     
     const pollForContentGeneration = async () => {
       const now = Date.now();
@@ -147,10 +163,33 @@ const GoalDetail = () => {
     await updateTaskStatus(taskId, checked);
   };
 
+  // If the goal hasn't been found after a reasonable time, show a "creating goal" state
+  // instead of redirecting to dashboard
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-pattern py-6 px-4 flex justify-center items-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-pattern py-6 px-4 flex flex-col justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-center text-lg font-medium">Loading your goal...</p>
+      </div>
+    );
+  }
+
+  // Show a special not found error for goals that are still being created
+  if (notFoundError) {
+    return (
+      <div className="min-h-screen bg-pattern py-6 px-4">
+        <div className="max-w-4xl mx-auto glass-card p-6 rounded-2xl">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+          </Button>
+          <div className="text-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-lg">Setting up your goal...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              This process may take a moment as we prepare your goal details.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -203,6 +242,9 @@ const GoalDetail = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
                 <p className="text-muted-foreground">
                   AI is generating tasks and quizzes for your goal...
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This may take a minute or two. The page will update automatically once ready.
                 </p>
               </CardContent>
             ) : (

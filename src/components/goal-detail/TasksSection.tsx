@@ -4,6 +4,7 @@ import { CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import TaskItem from './TaskItem';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TasksSectionProps {
   tasks: Task[];
@@ -20,20 +21,38 @@ const TasksSection = ({
 }: TasksSectionProps) => {
   if (isLoading) {
     return (
-      <div className="py-8 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <CardContent className="pt-0">
+        <div className="space-y-4">
+          <h3 className="text-base sm:text-lg font-medium">Tasks</h3>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 p-3 border rounded-lg animate-pulse">
+                <Skeleton className="h-5 w-5 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <div className="py-8 flex flex-col items-center justify-center space-y-4">
-        <p className="text-center text-muted-foreground">
-          Getting your tasks ready...
-        </p>
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
+      <CardContent className="pt-0">
+        <div className="py-8 flex flex-col items-center justify-center space-y-4">
+          <p className="text-center text-muted-foreground">
+            Your tasks are being prepared...
+          </p>
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            This will only take a moment
+          </p>
+        </div>
+      </CardContent>
     );
   }
 
