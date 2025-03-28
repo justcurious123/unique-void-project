@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,8 +24,15 @@ export interface NewTask {
 export const useTasks = (goalId: string) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const fetchInProgress = useRef(false);
 
   const fetchTasks = async () => {
+    // Prevent multiple simultaneous fetches
+    if (fetchInProgress.current) {
+      console.log('Task fetch already in progress, skipping duplicate request');
+      return;
+    }
+
     try {
       // Only fetch tasks if we have a valid goalId
       if (!goalId) {
@@ -33,6 +40,7 @@ export const useTasks = (goalId: string) => {
         return;
       }
 
+      fetchInProgress.current = true;
       setIsLoading(true);
       console.log(`Fetching tasks for goal ID: ${goalId}`);
 
@@ -48,19 +56,33 @@ export const useTasks = (goalId: string) => {
       setTasks(data || []);
     } catch (error: any) {
       console.error('Error fetching tasks:', error.message);
-      toast.error(`Error fetching tasks: ${error.message}`);
+      // Only show toast for user-facing errors
+      if (!error.message.includes('Foreign key violation')) {
+        toast.error(`Error fetching tasks: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
+      fetchInProgress.current = false;
     }
   };
 
-  // Fetch tasks whenever goalId changes
+  // Fetch tasks whenever goalId changes, with debounce
   useEffect(() => {
-    if (goalId) {
-      fetchTasks();
-    } else {
-      setTasks([]);
-    }
+    let isMounted = true;
+    const debounceTimeout = setTimeout(() => {
+      if (isMounted) {
+        if (goalId) {
+          fetchTasks();
+        } else {
+          setTasks([]);
+        }
+      }
+    }, 100);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(debounceTimeout);
+    };
   }, [goalId]);
 
   const createTask = async (newTask: NewTask) => {
@@ -94,8 +116,7 @@ export const useTasks = (goalId: string) => {
       
       if (data) {
         console.log('Task created successfully:', data[0]);
-        setTasks([...tasks, ...data]);
-        toast.success("Task added to goal successfully!");
+        setTasks(prevTasks => [...prevTasks, ...data]);
         return data[0];  // Return the created task
       }
       return null;
@@ -115,11 +136,12 @@ export const useTasks = (goalId: string) => {
         
       if (error) throw error;
       
-      setTasks(tasks.map(t => 
+      setTasks(prevTasks => prevTasks.map(t => 
         t.id === taskId ? { ...t, completed } : t
       ));
       return true;
     } catch (error: any) {
+      console.error('Error updating task status:', error.message);
       toast.error(`Error updating task status: ${error.message}`);
       return false;
     }

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useImageLoader } from '@/hooks/useImageLoader';
 import ImageHeader from './ImageHeader';
 import ImageLoader from './ImageLoader';
@@ -13,6 +13,8 @@ interface GoalImageProps {
 }
 
 const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps) => {
+  const [showPlaceholder, setShowPlaceholder] = useState(true);
+  
   const { 
     displayImageUrl, 
     isLoading: imageLoading, 
@@ -24,11 +26,30 @@ const GoalImage = ({ imageUrl, title, isLoading, forceRefresh }: GoalImageProps)
     title,
     isInitiallyLoading: isLoading,
     forceRefresh,
-    skipPlaceholder: true // Skip placeholder for detail view too
+    skipPlaceholder: true
   });
 
-  // Only show loader during initial loading phase
-  const showLoader = (isLoading || imageLoading) && !hasLoaded;
+  // Use a stable approach to show/hide the loader
+  useEffect(() => {
+    if (hasLoaded && showPlaceholder) {
+      // Add a small delay before hiding the placeholder to prevent flickering
+      const timeout = setTimeout(() => {
+        setShowPlaceholder(false);
+      }, 100);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [hasLoaded, showPlaceholder]);
+  
+  // When image URL changes, show placeholder again
+  useEffect(() => {
+    if (imageUrl) {
+      setShowPlaceholder(true);
+    }
+  }, [imageUrl]);
+  
+  // Only show loader during initial loading phase and hide once loaded
+  const showLoader = (isLoading || (imageLoading && !hasLoaded)) && showPlaceholder;
   
   return (
     <div className="relative">

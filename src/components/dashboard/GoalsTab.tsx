@@ -5,8 +5,10 @@ import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import CreateGoalDialog from "./CreateGoalDialog";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const GoalsTab = () => {
+  const navigate = useNavigate();
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
   
@@ -54,7 +56,8 @@ const GoalsTab = () => {
   };
 
   const handleGoalCreated = (goalId: string) => {
-    setExpandedGoalId(goalId);
+    // Navigate to goal detail page instead of expanding
+    navigate(`/goal/${goalId}`);
     toast.info("Your goal is being generated with AI-powered tasks and quizzes. Please wait a moment...");
   };
 

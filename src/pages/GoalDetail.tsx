@@ -23,103 +23,106 @@ const GoalDetail = () => {
   const [goalData, setGoalData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
-  const { tasks, isLoading: tasksLoading, fetchTasks, updateTaskStatus } = useTasks(goalId || '');
-  const [imageLoading, setImageLoading] = useState(false);
+  const { 
+    tasks, 
+    isLoading: tasksLoading, 
+    fetchTasks, 
+    updateTaskStatus 
+  } = useTasks(goalId || '');
+  
   const [creationInProgress, setCreationInProgress] = useState(false);
-  const [pollingActive, setPollingActive] = useState(false);
-  const [lastPollTime, setLastPollTime] = useState(0);
   const [notFoundError, setNotFoundError] = useState(false);
-  const [creationStartTime, setCreationStartTime] = useState(0);
+  const [pollingActive, setPollingActive] = useState(false);
   const [pollCount, setPollCount] = useState(0);
+  const [creationStartTime, setCreationStartTime] = useState(0);
   const [maxPollingReached, setMaxPollingReached] = useState(false);
-
+  const [lastPollTimestamp, setLastPollTimestamp] = useState(0);
+  
   // Use the custom hook for task ordering
   const { sortedTasks } = useTaskOrder(goalId, tasks, tasksLoading);
 
-  // Create a reusable function to fetch goal details
-  const fetchGoalDetails = useCallback(async () => {
+  // Improve fetch goal details to be more efficient and stable
+  const fetchGoalDetails = useCallback(async (silent = false) => {
+    if (!goalId) return false;
+    
+    if (!silent) {
+      console.log(`Fetching goal details for ${goalId}`);
+    }
+
     try {
-      if (!goalId) return false;
-      
-      console.log("Fetching goal details for", goalId);
       const { data, error } = await supabase
         .from('goals')
         .select('*')
         .eq('id', goalId)
-        .single();
+        .maybeSingle(); // Using maybeSingle to avoid errors if no goal found
           
       if (error) {
-        if (error.code === 'PGRST116') {
-          // Record not found error - could be a newly created goal that's not in the database yet
-          console.log("Goal not found, may be still creating");
-          setNotFoundError(true);
-          return false;
+        console.error("Error fetching goal details:", error);
+        return false;
+      }
+      
+      // Handle not found case
+      if (!data) {
+        if (!silent) {
+          console.log("Goal not found, may still be in creation process");
         }
-        throw error;
+        setNotFoundError(true);
+        return false;
       }
       
       // If we found the goal, clear not found error
       setNotFoundError(false);
       
-      // If we have a Replicate image URL, force a cache-busting parameter
+      // Determine if the image URL is valid
       let finalImageUrl = data.image_url;
-      if (finalImageUrl && finalImageUrl.includes('replicate.delivery')) {
-        // Don't add cache-busting parameter yet, we'll add it during render
-        // Just make sure the URL is valid
-        console.log(`Found Replicate image URL: ${finalImageUrl}`);
-      } 
-      // If no image URL, set default image
-      else if (!finalImageUrl) {
+      if (!finalImageUrl) {
         finalImageUrl = getDefaultImage(data.title);
-        console.log(`No image URL, using default: ${finalImageUrl}`);
       }
       
+      // Update goal data state
       setGoalData({
         ...data,
         image_url: finalImageUrl
       });
 
-      // If no tasks yet, we assume content generation is still in progress
+      // Check if content generation is still in progress
       const contentGenerationInProgress = !data.task_summary;
-      console.log("Content generation in progress:", contentGenerationInProgress);
+      if (!silent) {
+        console.log("Content generation in progress:", contentGenerationInProgress);
+      }
       setCreationInProgress(contentGenerationInProgress);
       
       // If content generation is complete but we have no tasks, fetch them
-      if (!contentGenerationInProgress && tasks.length === 0) {
-        console.log("Content generation complete but no tasks loaded, fetching tasks");
+      if (!contentGenerationInProgress && tasks.length === 0 && !tasksLoading) {
         fetchTasks();
       }
       
       return contentGenerationInProgress;
     } catch (error: any) {
-      console.error("Error fetching goal details:", error);
-      
-      if (!notFoundError) {
-        // Don't show toast for not found error (PGRST116) as this is expected during initial creation
-        if (error.code !== 'PGRST116') {
-          toast.error(`Error fetching goal details: ${error.message}`);
-        }
+      if (!silent) {
+        console.error("Error fetching goal details:", error);
       }
       
-      // Only navigate to dashboard for severe errors, not for not-found
-      // which is expected during goal creation process
       if (error.code !== 'PGRST116') {
-        console.log("Severe error, returning to dashboard");
-        navigate('/dashboard');
+        toast.error(`Error loading goal: ${error.message}`);
       }
       
       return false;
     } finally {
-      setIsLoading(false);
-      setImageLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
-  }, [goalId, navigate, fetchTasks, tasks.length, notFoundError]);
+  }, [goalId, fetchTasks, tasks.length, tasksLoading]);
 
-  // Initial data load
+  // Initial data load - simplified to prevent race conditions
   useEffect(() => {
+    let isMounted = true;
+    
     const loadInitialData = async () => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
-      setImageLoading(true);
       
       // Set the creation start time to measure polling duration
       if (!creationStartTime) {
@@ -129,45 +132,61 @@ const GoalDetail = () => {
       const isGenerating = await fetchGoalDetails();
       
       // Start polling if content generation is in progress or goal not found yet
-      if (isGenerating || notFoundError) {
-        console.log("Content generation is in progress or goal not found, starting polling");
+      if ((isGenerating || notFoundError) && isMounted) {
         setPollingActive(true);
-        setLastPollTime(Date.now());
+        setLastPollTimestamp(Date.now());
         setPollCount(0);
+      } else {
+        setPollingActive(false);
+      }
+      
+      if (isMounted) {
+        setIsLoading(false);
       }
     };
     
     loadInitialData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [fetchGoalDetails, creationStartTime, notFoundError]);
 
-  // Polling mechanism for content generation
+  // Polling mechanism - improved to be more reliable and less flickery
   useEffect(() => {
     if (!pollingActive || !goalId) return;
     
     const POLL_INTERVAL = 3000; // 3 seconds
-    const MAX_POLLING_TIME = 180000; // 3 minutes (as a safety measure)
-    const MAX_POLL_COUNT = 60; // Maximum number of polls (3 minutes at 3-second intervals)
+    const MAX_POLLING_TIME = 180000; // 3 minutes
+    const MAX_POLL_COUNT = 60; // Maximum number of polls
+    
+    let pollingTimerId: number | undefined;
     
     const pollForContentGeneration = async () => {
+      const now = Date.now();
+      const timeSinceLastPoll = now - lastPollTimestamp;
+      
+      // Only poll if enough time has passed since last poll
+      if (timeSinceLastPoll < POLL_INTERVAL) {
+        return;
+      }
+      
       const newPollCount = pollCount + 1;
       setPollCount(newPollCount);
+      setLastPollTimestamp(now);
       
-      const now = Date.now();
       const pollingDuration = now - creationStartTime;
-      
-      // Log the polling progress
-      console.log(`Polling for content generation: ${Math.round(pollingDuration/1000)}s elapsed (poll #${newPollCount})`);
       
       // Safety check to stop polling after MAX_POLLING_TIME or MAX_POLL_COUNT
       if (pollingDuration > MAX_POLLING_TIME || newPollCount >= MAX_POLL_COUNT) {
-        console.log("Stopped polling after reaching max polling time or count");
+        console.log("Stopping polling after reaching max time or count");
         setPollingActive(false);
         setMaxPollingReached(true);
         return;
       }
 
-      console.log("Polling for content generation completion...");
-      const isStillGenerating = await fetchGoalDetails();
+      // Use silent polling to avoid console spam
+      const isStillGenerating = await fetchGoalDetails(true);
       
       // If content generation is complete (we found the goal and it has tasks)
       if (!isStillGenerating && !notFoundError) {
@@ -176,15 +195,27 @@ const GoalDetail = () => {
         fetchTasks();
         toast.success("Goal content has been generated successfully!");
       }
-      
-      setLastPollTime(now);
     };
     
-    const intervalId = setInterval(pollForContentGeneration, POLL_INTERVAL);
+    // Set up a stable interval that won't cause UI flickering
+    pollingTimerId = window.setInterval(pollForContentGeneration, 1000);
     
     // Clean up interval on unmount or when polling stops
-    return () => clearInterval(intervalId);
-  }, [pollingActive, goalId, fetchGoalDetails, lastPollTime, fetchTasks, creationStartTime, notFoundError, pollCount]);
+    return () => {
+      if (pollingTimerId) {
+        window.clearInterval(pollingTimerId);
+      }
+    };
+  }, [
+    pollingActive, 
+    goalId, 
+    fetchGoalDetails, 
+    fetchTasks, 
+    creationStartTime, 
+    notFoundError, 
+    pollCount, 
+    lastPollTimestamp
+  ]);
 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 0;
@@ -196,8 +227,8 @@ const GoalDetail = () => {
     await updateTaskStatus(taskId, checked);
   };
 
-  // If the goal is still loading, show a loading state
-  if (isLoading) {
+  // Show loading state - simplified to be more stable
+  if (isLoading && !goalData) {
     return (
       <div className="min-h-screen bg-pattern py-6 px-4 flex flex-col justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -249,8 +280,8 @@ const GoalDetail = () => {
                   setMaxPollingReached(false);
                   setPollCount(0);
                   setCreationStartTime(Date.now());
-                  setLastPollTime(Date.now());
-                  toast.info("Resumed checking for your goal...");
+                  setLastPollTimestamp(Date.now());
+                  toast.info("Resuming check for your goal...");
                 }}
               >
                 Check Again
@@ -267,6 +298,7 @@ const GoalDetail = () => {
     );
   }
 
+  // If goal data still not available after all checks
   if (!goalData) {
     return (
       <div className="min-h-screen bg-pattern py-6 px-4">
@@ -290,7 +322,7 @@ const GoalDetail = () => {
           <GoalImage 
             imageUrl={goalData.image_url}
             title={goalData.title}
-            isLoading={imageLoading}
+            isLoading={false} // No more flickering loader here
           />
         )}
         

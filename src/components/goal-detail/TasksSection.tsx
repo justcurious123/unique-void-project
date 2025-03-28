@@ -19,14 +19,15 @@ const TasksSection = ({
   onStatusChange,
   onQuizStart
 }: TasksSectionProps) => {
-  if (isLoading) {
+  // Show stable loading UI that doesn't cause layout shifts
+  if (isLoading && tasks.length === 0) {
     return (
       <CardContent className="pt-0">
         <div className="space-y-4">
           <h3 className="text-base sm:text-lg font-medium">Tasks</h3>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-3 p-3 border rounded-lg animate-pulse">
+              <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
                 <Skeleton className="h-5 w-5 rounded-full" />
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-4 w-3/4" />
@@ -40,6 +41,7 @@ const TasksSection = ({
     );
   }
 
+  // Empty state handling
   if (tasks.length === 0) {
     return (
       <CardContent className="pt-0">
@@ -56,6 +58,7 @@ const TasksSection = ({
     );
   }
 
+  // Display tasks
   const activeTasks = tasks.filter(task => !task.completed);
   const completedTasks = tasks.filter(task => task.completed);
 
