@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { LogIn, UserPlus, ArrowLeft } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +14,6 @@ const Auth: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Check if user is already logged in
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
@@ -33,7 +31,6 @@ const Auth: React.FC = () => {
 
     try {
       if (isLogin) {
-        // Login
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -48,7 +45,6 @@ const Auth: React.FC = () => {
         
         navigate("/dashboard");
       } else {
-        // Sign up
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -74,14 +70,6 @@ const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-pattern">
-      <Link 
-        to="/" 
-        className="absolute top-6 left-6 flex items-center gap-1 text-foreground/80 hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back home
-      </Link>
-      
       <div className="glass-card w-full max-w-md p-8 rounded-2xl">
         <div className="flex items-center justify-center mb-8">
           <h1 className="text-2xl font-medium tracking-tight">
