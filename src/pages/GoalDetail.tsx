@@ -29,6 +29,7 @@ const GoalDetail = () => {
   const [pollingActive, setPollingActive] = useState(false);
   const [lastPollTime, setLastPollTime] = useState(0);
   const [notFoundError, setNotFoundError] = useState(false);
+  const [creationStartTime, setCreationStartTime] = useState(0);
 
   // Use the custom hook for task ordering
   const { sortedTasks } = useTaskOrder(goalId, tasks, tasksLoading);
@@ -36,8 +37,9 @@ const GoalDetail = () => {
   // Create a reusable function to fetch goal details
   const fetchGoalDetails = useCallback(async () => {
     try {
-      if (!goalId) return;
+      if (!goalId) return false;
       
+      console.log("Fetching goal details for", goalId);
       const { data, error } = await supabase
         .from('goals')
         .select('*')
@@ -46,8 +48,10 @@ const GoalDetail = () => {
           
       if (error) {
         if (error.code === 'PGRST116') {
-          // Record not found error
+          // Record not found error - could be a newly created goal that's not in the database yet
+          console.log("Goal not found, may be still creating");
           setNotFoundError(true);
+          return false;
         }
         throw error;
       }
@@ -70,12 +74,17 @@ const GoalDetail = () => {
         image_url: finalImageUrl
       });
 
+      // Goal exists now, clear not found error
+      setNotFoundError(false);
+
       // If no tasks yet, we assume content generation is still in progress
       const contentGenerationInProgress = !data.task_summary;
+      console.log("Content generation in progress:", contentGenerationInProgress);
       setCreationInProgress(contentGenerationInProgress);
       
       // If content generation is complete but we have no tasks, fetch them
       if (!contentGenerationInProgress && tasks.length === 0) {
+        console.log("Content generation complete but no tasks loaded, fetching tasks");
         fetchTasks();
       }
       
@@ -84,12 +93,16 @@ const GoalDetail = () => {
       console.error("Error fetching goal details:", error);
       
       if (!notFoundError) {
-        toast.error(`Error fetching goal details: ${error.message}`);
+        // Don't show toast for not found error (PGRST116) as this is expected during initial creation
+        if (error.code !== 'PGRST116') {
+          toast.error(`Error fetching goal details: ${error.message}`);
+        }
       }
       
-      // Only navigate to dashboard for non-not-found errors to avoid immediate redirect
-      // during goal creation process
+      // Only navigate to dashboard for severe errors, not for not-found
+      // which is expected during goal creation process
       if (error.code !== 'PGRST116') {
+        console.log("Severe error, returning to dashboard");
         navigate('/dashboard');
       }
       
@@ -105,17 +118,24 @@ const GoalDetail = () => {
     const loadInitialData = async () => {
       setIsLoading(true);
       setImageLoading(true);
+      
+      // Set the creation start time to measure polling duration
+      if (!creationStartTime) {
+        setCreationStartTime(Date.now());
+      }
+      
       const isGenerating = await fetchGoalDetails();
       
       // Start polling if content generation is in progress
       if (isGenerating) {
+        console.log("Content generation is in progress, starting polling");
         setPollingActive(true);
         setLastPollTime(Date.now());
       }
     };
     
     loadInitialData();
-  }, [fetchGoalDetails]);
+  }, [fetchGoalDetails, creationStartTime]);
 
   // Polling mechanism for content generation
   useEffect(() => {
@@ -127,6 +147,10 @@ const GoalDetail = () => {
     const pollForContentGeneration = async () => {
       const now = Date.now();
       const pollingDuration = now - lastPollTime;
+      const totalCreationTime = now - creationStartTime;
+      
+      // Log the polling progress
+      console.log(`Polling for content generation: ${Math.round(totalCreationTime/1000)}s elapsed`);
       
       // Safety check to stop polling after MAX_POLLING_TIME
       if (pollingDuration > MAX_POLLING_TIME) {
@@ -151,7 +175,7 @@ const GoalDetail = () => {
     
     // Clean up interval on unmount or when polling stops
     return () => clearInterval(intervalId);
-  }, [pollingActive, goalId, fetchGoalDetails, lastPollTime, fetchTasks]);
+  }, [pollingActive, goalId, fetchGoalDetails, lastPollTime, fetchTasks, creationStartTime]);
 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 0;
@@ -187,6 +211,9 @@ const GoalDetail = () => {
             <p className="text-lg">Setting up your goal...</p>
             <p className="text-sm text-muted-foreground mt-2">
               This process may take a moment as we prepare your goal details.
+            </p>
+            <p className="text-sm text-muted-foreground mt-6">
+              Please wait on this page. It will automatically update when your goal is ready.
             </p>
           </div>
         </div>
@@ -245,6 +272,9 @@ const GoalDetail = () => {
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   This may take a minute or two. The page will update automatically once ready.
+                </p>
+                <p className="text-sm text-muted-foreground mt-6">
+                  Please remain on this page. You don't need to refresh or navigate away.
                 </p>
               </CardContent>
             ) : (

@@ -72,11 +72,12 @@ const CreateGoalDialog: React.FC<CreateGoalDialogProps> = ({
         target_date: ""
       });
       
-      // Navigate to the goal detail page
-      navigate(`/goal/${goalId}`);
-      
       // Show a helpful toast message about the background processes
       toast.info("Creating your financial goal with AI-generated tasks and quizzes...");
+      
+      // Use navigate with { replace: false } to ensure we don't replace the current entry in history
+      // This prevents unexpected back navigation
+      navigate(`/goal/${goalId}`, { replace: false });
     }
   };
 

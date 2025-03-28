@@ -49,7 +49,7 @@ const TasksSection = ({
           </p>
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">
-            This will only take a moment
+            This will only take a moment. Please stay on this page.
           </p>
         </div>
       </CardContent>

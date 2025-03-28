@@ -43,6 +43,8 @@ export const useGoalCreation = ({
   // Extract goal content generation to a separate function
   const generateGoalContent = async (goalTitle: string, goalDescription: string, goalId: string) => {
     try {
+      console.log(`Generating content for goal: ${goalTitle} (${goalId})`);
+      
       const response = await supabase.functions.invoke('generate-goal-content', {
         body: {
           title: goalTitle,
@@ -66,6 +68,7 @@ export const useGoalCreation = ({
   const generateGoalImage = async (goalTitle: string, goalId: string) => {
     try {
       toast.info("Generating goal image...");
+      console.log(`Generating image for goal: ${goalTitle} (${goalId})`);
       
       const imageResponse = await supabase.functions.invoke('generate-goal-image', {
         body: {
@@ -95,6 +98,8 @@ export const useGoalCreation = ({
     goalId: string
   ) => {
     try {
+      console.log(`Creating ${generatedTasks.length} tasks for goal ${goalId}`);
+      
       const taskPromises = generatedTasks.map(async (task, i) => {
         const taskData = {
           title: task.title,
@@ -110,6 +115,8 @@ export const useGoalCreation = ({
         if (createdTask && createdTask.id) {
           const quiz = quizzes.find(q => q.task_index === i);
           if (quiz) {
+            console.log(`Creating quiz for task: ${createdTask.id}`);
+            
             const { error: quizError } = await supabase.from('quizzes').insert([{
               task_id: createdTask.id,
               title: quiz.title,
@@ -137,6 +144,8 @@ export const useGoalCreation = ({
     try {
       if (!taskSummary) return;
       
+      console.log(`Updating goal ${goalId} with task summary`);
+      
       const { error: updateError } = await supabase.from('goals').update({
         task_summary: taskSummary
       }).eq('id', goalId);
@@ -159,10 +168,13 @@ export const useGoalCreation = ({
       setIsCreating(true);
       
       // Step 1: Create the base goal
+      console.log("Creating new goal:", newGoal.title);
       const createdGoal = await onCreateGoal(newGoal);
       if (!createdGoal) {
         throw new Error("Failed to create goal");
       }
+      
+      console.log("Goal created with ID:", createdGoal.id);
       
       // Let the parent component know which goal was created
       onGoalCreated(createdGoal.id);
@@ -211,6 +223,7 @@ export const useGoalCreation = ({
       // Return the goal ID for immediate navigation
       return createdGoal.id;
     } catch (error: any) {
+      console.error("Error in handleCreateGoal:", error);
       toast.error(`Error: ${error.message}`);
       return null;
     } finally {
