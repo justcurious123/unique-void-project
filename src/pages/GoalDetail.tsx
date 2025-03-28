@@ -23,7 +23,7 @@ const GoalDetail = () => {
   const [goalData, setGoalData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
-  const { tasks, isLoading: tasksLoading, fetchTasks } = useTasks(goalId || '');
+  const { tasks, isLoading: tasksLoading, fetchTasks, updateTaskStatus } = useTasks(goalId || '');
   const [imageLoading, setImageLoading] = useState(false);
   const [creationInProgress, setCreationInProgress] = useState(false);
   const [pollingActive, setPollingActive] = useState(false);
