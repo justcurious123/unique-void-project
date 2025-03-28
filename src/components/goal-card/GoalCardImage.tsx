@@ -25,7 +25,7 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
     title,
     isInitiallyLoading: isLoading,
     forceRefresh,
-    skipPlaceholder: true // Skip using placeholder for initial loading
+    skipPlaceholder: true // Skip placeholder images for goal cards
   });
 
   // Only show loader during initial loading phase
@@ -50,7 +50,7 @@ const GoalCardImage = ({ imageUrl, title, goalId, isLoading, forceRefresh }: Goa
         >
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
           
-          {hasError && !imageUrl?.startsWith('/lovable-uploads/') && (
+          {hasError && imageUrl && !imageUrl.startsWith('/lovable-uploads/') && (
             <Button 
               variant="secondary" 
               size="icon"

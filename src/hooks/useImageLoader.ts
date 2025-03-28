@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from 'react';
-import { validateImageUrl, getDefaultImage } from '@/utils/goalImages';
+import { getDefaultImage } from '@/utils/goalImages';
 
 interface UseImageLoaderProps {
   imageUrl: string | null;
   title: string;
   isInitiallyLoading?: boolean;
   forceRefresh?: boolean;
-  skipPlaceholder?: boolean; // Add option to skip using placeholder
+  skipPlaceholder?: boolean;
 }
 
 export const useImageLoader = ({
@@ -26,7 +26,9 @@ export const useImageLoader = ({
   const loadImage = async (url: string | null) => {
     if (!url) {
       setIsLoading(false);
-      setHasError(true);
+      setHasError(false);
+      setHasLoaded(false);
+      setDisplayImageUrl(null);
       return;
     }
 
@@ -39,6 +41,11 @@ export const useImageLoader = ({
       return;
     }
 
+    // For Replicate URLs, add a cache-busting parameter to ensure fresh content
+    const imageUrlToLoad = url.includes('replicate.delivery') 
+      ? `${url}?t=${new Date().getTime()}` 
+      : url;
+
     // For remote URLs, actually check if they load
     try {
       setIsLoading(true);
@@ -46,7 +53,8 @@ export const useImageLoader = ({
       const img = new Image();
       
       img.onload = () => {
-        setDisplayImageUrl(url);
+        console.log(`Image loaded successfully: ${url}`);
+        setDisplayImageUrl(imageUrlToLoad);
         setIsLoading(false);
         setHasError(false);
         setHasLoaded(true);
@@ -60,13 +68,15 @@ export const useImageLoader = ({
         // Only use a default image if we're not skipping placeholders
         if (!skipPlaceholder) {
           setDisplayImageUrl(getDefaultImage(title));
+          setHasLoaded(true);
         } else {
           setDisplayImageUrl(null);
+          setHasLoaded(false);
         }
       };
       
       // Start loading the image
-      img.src = url;
+      img.src = imageUrlToLoad;
     } catch (error) {
       console.error('Error loading image:', error);
       setIsLoading(false);
@@ -75,8 +85,10 @@ export const useImageLoader = ({
       // Only use a default image if we're not skipping placeholders
       if (!skipPlaceholder) {
         setDisplayImageUrl(getDefaultImage(title));
+        setHasLoaded(true);
       } else {
         setDisplayImageUrl(null);
+        setHasLoaded(false);
       }
     }
   };
@@ -90,25 +102,22 @@ export const useImageLoader = ({
 
   // Effect to load the image when the URL changes or force refresh is triggered
   useEffect(() => {
-    // If we have a URL, load it
     if (imageUrl) {
       loadImage(imageUrl);
     } 
-    // If we don't have a URL but aren't skipping placeholders, use default
     else if (!skipPlaceholder) {
       setDisplayImageUrl(getDefaultImage(title));
       setIsLoading(false);
       setHasError(false);
       setHasLoaded(true);
     } 
-    // If we're skipping placeholders and don't have a URL, show nothing
     else {
       setDisplayImageUrl(null);
       setIsLoading(false);
       setHasError(false);
       setHasLoaded(false);
     }
-  }, [imageUrl, forceRefresh]);
+  }, [imageUrl, forceRefresh, title, skipPlaceholder]);
 
   return {
     displayImageUrl,

@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Goal } from "@/hooks/types/goalTypes";
-import { preloadGoalImage, validateImageUrl } from "@/utils/goalImages";
+import { preloadGoalImage, validateImageUrl, getDefaultImage } from "@/utils/goalImages";
 
 /**
  * Updates a goal's image loading state in the database
@@ -62,7 +62,7 @@ export const handleGoalImagesPreloading = (
       }
       
       // For loading goals, check their status
-      checkAndUpdateGoalImage(goal.id, updateGoalInState);
+      checkAndUpdateGoalImage(goal.id, goal.image_url, updateGoalInState);
     }
   });
 };
@@ -72,6 +72,7 @@ export const handleGoalImagesPreloading = (
  */
 export const checkAndUpdateGoalImage = async (
   goalId: string,
+  currentImageUrl: string | null,
   updateGoalInState: (goalUpdate: Partial<Goal> & { id: string }) => void
 ): Promise<boolean> => {
   try {
@@ -96,12 +97,15 @@ export const checkAndUpdateGoalImage = async (
     if (isReplicateImage && data.image_url && !data.image_loading) {
       console.log(`Image ready for goal ${goalId}: ${data.image_url}`);
       
-      updateGoalInState({
-        id: goalId,
-        image_url: data.image_url,
-        image_loading: false,
-        image_refresh: true
-      });
+      // Only update if the image URL has changed or was previously loading
+      if (data.image_url !== currentImageUrl || data.image_loading) {
+        updateGoalInState({
+          id: goalId,
+          image_url: data.image_url,
+          image_loading: false,
+          image_refresh: true
+        });
+      }
       
       return true;
     }
