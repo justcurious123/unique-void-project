@@ -35,7 +35,7 @@ serve(async (req) => {
       article_content: t.article_content
     }))
 
-    // Generate summary
+    // Generate summary using the latest model
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -64,6 +64,7 @@ serve(async (req) => {
     }
     
     const summary = data.choices[0].message.content.trim()
+    console.log('Generated summary:', summary);
 
     return new Response(
       JSON.stringify({ summary }),

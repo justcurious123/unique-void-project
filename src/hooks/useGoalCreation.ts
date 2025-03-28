@@ -50,46 +50,18 @@ export const useGoalCreation = ({
       onGoalCreated(createdGoal.id);
       
       // Step 3: Start background generation of content
-      generateGoalContent(
-        newGoal.title, 
-        newGoal.description, 
-        createdGoal.id
-      ).then(async (contentResult) => {
-        const { tasks: generatedTasks, quizzes, goal_id } = contentResult;
-        
-        if (!goal_id || goal_id !== createdGoal.id) {
-          console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
-        }
-        
-        // Step 4: Generate goal image in parallel
-        generateGoalImage(newGoal.title, createdGoal.id);
-        
-        // Step 5: Create tasks and quizzes
-        const createdTasks = await createTasksWithQuizzes(
-          generatedTasks,
-          quizzes,
-          createdGoal.id,
-          createTask
-        );
-        
-        // Step 6: Generate and update task summary
-        const taskSummary = await generateTaskSummary(createdTasks);
-        await updateGoalWithTaskSummary(createdGoal.id, taskSummary);
-        
-        // Step 7: Refresh goals to update the dashboard
-        if (taskSummary) {
-          refreshGoals();
-        }
-        
-        // Step 8: Fetch tasks to update the UI if still on the goal detail page
-        fetchTasks();
-        
-        // Show a completion notification
-        toast.success("Your financial goal has been created successfully!");
-      }).catch(error => {
-        console.error("Error generating goal content:", error);
-        toast.error("Error generating goal content, but goal was created");
-      });
+      toast.info("Generating tasks and quizzes for your goal...");
+      
+      // Generate content in the background
+      setTimeout(() => {
+        handleBackgroundGenerations(
+          newGoal.title,
+          newGoal.description,
+          createdGoal.id
+        ).catch(error => {
+          console.error("Background generation error:", error);
+        });
+      }, 100);
       
       // Return the goal ID for immediate navigation
       return createdGoal.id;
@@ -99,6 +71,48 @@ export const useGoalCreation = ({
       return null;
     } finally {
       setIsCreating(false);
+    }
+  };
+  
+  // Handle all background generations after goal creation
+  const handleBackgroundGenerations = async (title: string, description: string, goalId: string) => {
+    try {
+      // Generate goal content (tasks and quizzes)
+      const contentResult = await generateGoalContent(title, description, goalId);
+      const { tasks: generatedTasks, quizzes, goal_id } = contentResult;
+      
+      if (!goal_id || goal_id !== goalId) {
+        console.warn("Goal ID mismatch. Using created goal ID:", goalId);
+      }
+      
+      // Generate goal image in parallel
+      generateGoalImage(title, goalId);
+      
+      // Create tasks and quizzes
+      const createdTasks = await createTasksWithQuizzes(
+        generatedTasks,
+        quizzes,
+        goalId,
+        createTask
+      );
+      
+      // Generate and update task summary
+      const taskSummary = await generateTaskSummary(createdTasks);
+      await updateGoalWithTaskSummary(goalId, taskSummary);
+      
+      // Refresh goals to update the dashboard
+      if (taskSummary) {
+        refreshGoals();
+      }
+      
+      // Fetch tasks to update the UI if still on the goal detail page
+      fetchTasks();
+      
+      // Show a completion notification
+      toast.success("Your financial goal has been created successfully!");
+    } catch (error: any) {
+      console.error("Error in background generations:", error);
+      toast.error("Error generating content, but your goal was created");
     }
   };
 

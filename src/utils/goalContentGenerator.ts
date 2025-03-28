@@ -19,9 +19,11 @@ export const generateGoalContent = async (goalTitle: string, goalDescription: st
       throw new Error(`Error generating content: ${response.error.message}`);
     }
     
+    console.log(`Content generation successful for goal: ${goalId}`);
     return response.data;
   } catch (error) {
     console.error("Error generating goal content:", error);
+    toast.error("Failed to generate goal content. Please try refreshing the page.");
     throw error;
   }
 };
@@ -42,14 +44,14 @@ export const generateGoalImage = async (goalTitle: string, goalId: string) => {
     if (imageResponse.error) {
       console.error("Error generating goal image:", imageResponse.error);
       toast.error("Failed to generate goal image, but goal was created successfully");
+      return null;
     } else {
-      console.log("Goal image generated:", imageResponse.data);
+      console.log("Goal image generated successfully:", imageResponse.data);
       if (imageResponse.data?.prompt) {
         console.log("Using custom prompt:", imageResponse.data.prompt);
       }
+      return imageResponse.data;
     }
-    
-    return imageResponse.data;
   } catch (imageError) {
     console.error("Error invoking image generation:", imageError);
     return null;

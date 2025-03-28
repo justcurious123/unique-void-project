@@ -55,7 +55,7 @@ const GoalsTab = () => {
 
   const handleGoalCreated = (goalId: string) => {
     setExpandedGoalId(goalId);
-    toast.info("Your goal image is being generated and will appear shortly");
+    toast.info("Your goal is being generated with AI-powered tasks and quizzes. Please wait a moment...");
   };
 
   return (
