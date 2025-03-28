@@ -135,9 +135,7 @@ const Hero: React.FC = () => {
         </div>
         
         <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 animate-bounce cursor-pointer hidden md:block">
-          <button onClick={scrollToFeatures} aria-label="Scroll down" className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-subtle hover:shadow-md transition-all">
-            <ArrowDown className="h-5 w-5 text-primary" />
-          </button>
+          
         </div>
       </div>
     </section>;
