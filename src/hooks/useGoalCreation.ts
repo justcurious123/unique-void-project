@@ -176,10 +176,11 @@ export const useGoalCreation = ({
       
       console.log("Goal created with ID:", createdGoal.id);
       
-      // Let the parent component know which goal was created
+      // Step 2: Let the parent component know a goal was created and navigate
+      // This is crucial - we immediately navigate to goal detail while content generates
       onGoalCreated(createdGoal.id);
       
-      // Step 2: Generate goal content (tasks and quizzes) in the background
+      // Step 3: Start background generation of content
       generateGoalContent(
         newGoal.title, 
         newGoal.description, 
@@ -191,26 +192,26 @@ export const useGoalCreation = ({
           console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
         }
         
-        // Step 3: Generate goal image in parallel (already in background)
+        // Step 4: Generate goal image in parallel
         generateGoalImage(newGoal.title, createdGoal.id);
         
-        // Step 4: Create tasks and quizzes
+        // Step 5: Create tasks and quizzes
         const createdTasks = await createTasksWithQuizzes(
           generatedTasks,
           quizzes,
           createdGoal.id
         );
         
-        // Step 5: Generate and update task summary
+        // Step 6: Generate and update task summary
         const taskSummary = await generateTaskSummary(createdTasks);
         await updateGoalWithTaskSummary(createdGoal.id, taskSummary);
         
-        // Step 6: Refresh goals if task summary was updated
+        // Step 7: Refresh goals to update the dashboard
         if (taskSummary) {
           refreshGoals();
         }
         
-        // Step 7: Fetch tasks to update the UI
+        // Step 8: Fetch tasks to update the UI if still on the goal detail page
         fetchTasks();
         
         // Show a completion notification

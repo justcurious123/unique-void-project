@@ -30,6 +30,8 @@ const GoalDetail = () => {
   const [lastPollTime, setLastPollTime] = useState(0);
   const [notFoundError, setNotFoundError] = useState(false);
   const [creationStartTime, setCreationStartTime] = useState(0);
+  const [pollCount, setPollCount] = useState(0);
+  const [maxPollingReached, setMaxPollingReached] = useState(false);
 
   // Use the custom hook for task ordering
   const { sortedTasks } = useTaskOrder(goalId, tasks, tasksLoading);
@@ -56,6 +58,9 @@ const GoalDetail = () => {
         throw error;
       }
       
+      // If we found the goal, clear not found error
+      setNotFoundError(false);
+      
       // If we have a Replicate image URL, force a cache-busting parameter
       let finalImageUrl = data.image_url;
       if (finalImageUrl && finalImageUrl.includes('replicate.delivery')) {
@@ -73,9 +78,6 @@ const GoalDetail = () => {
         ...data,
         image_url: finalImageUrl
       });
-
-      // Goal exists now, clear not found error
-      setNotFoundError(false);
 
       // If no tasks yet, we assume content generation is still in progress
       const contentGenerationInProgress = !data.task_summary;
@@ -126,16 +128,17 @@ const GoalDetail = () => {
       
       const isGenerating = await fetchGoalDetails();
       
-      // Start polling if content generation is in progress
-      if (isGenerating) {
-        console.log("Content generation is in progress, starting polling");
+      // Start polling if content generation is in progress or goal not found yet
+      if (isGenerating || notFoundError) {
+        console.log("Content generation is in progress or goal not found, starting polling");
         setPollingActive(true);
         setLastPollTime(Date.now());
+        setPollCount(0);
       }
     };
     
     loadInitialData();
-  }, [fetchGoalDetails, creationStartTime]);
+  }, [fetchGoalDetails, creationStartTime, notFoundError]);
 
   // Polling mechanism for content generation
   useEffect(() => {
@@ -143,39 +146,45 @@ const GoalDetail = () => {
     
     const POLL_INTERVAL = 3000; // 3 seconds
     const MAX_POLLING_TIME = 180000; // 3 minutes (as a safety measure)
+    const MAX_POLL_COUNT = 60; // Maximum number of polls (3 minutes at 3-second intervals)
     
     const pollForContentGeneration = async () => {
+      const newPollCount = pollCount + 1;
+      setPollCount(newPollCount);
+      
       const now = Date.now();
-      const pollingDuration = now - lastPollTime;
-      const totalCreationTime = now - creationStartTime;
+      const pollingDuration = now - creationStartTime;
       
       // Log the polling progress
-      console.log(`Polling for content generation: ${Math.round(totalCreationTime/1000)}s elapsed`);
+      console.log(`Polling for content generation: ${Math.round(pollingDuration/1000)}s elapsed (poll #${newPollCount})`);
       
-      // Safety check to stop polling after MAX_POLLING_TIME
-      if (pollingDuration > MAX_POLLING_TIME) {
-        console.log("Stopped polling after reaching max polling time");
+      // Safety check to stop polling after MAX_POLLING_TIME or MAX_POLL_COUNT
+      if (pollingDuration > MAX_POLLING_TIME || newPollCount >= MAX_POLL_COUNT) {
+        console.log("Stopped polling after reaching max polling time or count");
         setPollingActive(false);
+        setMaxPollingReached(true);
         return;
       }
 
       console.log("Polling for content generation completion...");
       const isStillGenerating = await fetchGoalDetails();
       
-      // If content generation is complete
-      if (!isStillGenerating) {
+      // If content generation is complete (we found the goal and it has tasks)
+      if (!isStillGenerating && !notFoundError) {
         console.log("Content generation complete, stopping polling");
         setPollingActive(false);
         fetchTasks();
         toast.success("Goal content has been generated successfully!");
       }
+      
+      setLastPollTime(now);
     };
     
     const intervalId = setInterval(pollForContentGeneration, POLL_INTERVAL);
     
     // Clean up interval on unmount or when polling stops
     return () => clearInterval(intervalId);
-  }, [pollingActive, goalId, fetchGoalDetails, lastPollTime, fetchTasks, creationStartTime]);
+  }, [pollingActive, goalId, fetchGoalDetails, lastPollTime, fetchTasks, creationStartTime, notFoundError, pollCount]);
 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 0;
@@ -187,8 +196,7 @@ const GoalDetail = () => {
     await updateTaskStatus(taskId, checked);
   };
 
-  // If the goal hasn't been found after a reasonable time, show a "creating goal" state
-  // instead of redirecting to dashboard
+  // If the goal is still loading, show a loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-pattern py-6 px-4 flex flex-col justify-center items-center">
@@ -215,6 +223,44 @@ const GoalDetail = () => {
             <p className="text-sm text-muted-foreground mt-6">
               Please wait on this page. It will automatically update when your goal is ready.
             </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show a message if max polling time reached but goal still not ready
+  if (maxPollingReached && !goalData) {
+    return (
+      <div className="min-h-screen bg-pattern py-6 px-4">
+        <div className="max-w-4xl mx-auto glass-card p-6 rounded-2xl">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+          </Button>
+          <div className="text-center py-10">
+            <p className="text-lg">Your goal is taking longer than expected to create</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              We're still working on generating your goal content.
+            </p>
+            <div className="mt-6 space-y-4">
+              <Button 
+                onClick={() => {
+                  setPollingActive(true);
+                  setMaxPollingReached(false);
+                  setPollCount(0);
+                  setCreationStartTime(Date.now());
+                  setLastPollTime(Date.now());
+                  toast.info("Resumed checking for your goal...");
+                }}
+              >
+                Check Again
+              </Button>
+              <div>
+                <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                  Return to Dashboard
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
