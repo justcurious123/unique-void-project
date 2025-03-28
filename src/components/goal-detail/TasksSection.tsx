@@ -28,7 +28,12 @@ const TasksSection = ({
 
   if (tasks.length === 0) {
     return (
-      <p className="text-center py-6 text-muted-foreground">No tasks found for this goal.</p>
+      <div className="py-8 flex flex-col items-center justify-center space-y-4">
+        <p className="text-center text-muted-foreground">
+          Getting your tasks ready...
+        </p>
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
     );
   }
 

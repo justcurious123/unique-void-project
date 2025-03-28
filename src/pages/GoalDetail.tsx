@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,84 +23,119 @@ const GoalDetail = () => {
   const [goalData, setGoalData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
-  const { tasks, isLoading: tasksLoading, updateTaskStatus } = useTasks(goalId || '');
+  const { tasks, isLoading: tasksLoading, fetchTasks } = useTasks(goalId || '');
   const [imageLoading, setImageLoading] = useState(false);
   const [creationInProgress, setCreationInProgress] = useState(false);
+  const [pollingActive, setPollingActive] = useState(false);
+  const [lastPollTime, setLastPollTime] = useState(0);
 
   // Use the custom hook for task ordering
   const { sortedTasks } = useTaskOrder(goalId, tasks, tasksLoading);
 
+  // Create a reusable function to fetch goal details
+  const fetchGoalDetails = useCallback(async () => {
+    try {
+      if (!goalId) return;
+      
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('id', goalId)
+        .single();
+          
+      if (error) throw error;
+      
+      // If we have a Replicate image URL, force a cache-busting parameter
+      let finalImageUrl = data.image_url;
+      if (finalImageUrl && finalImageUrl.includes('replicate.delivery')) {
+        // Don't add cache-busting parameter yet, we'll add it during render
+        // Just make sure the URL is valid
+        console.log(`Found Replicate image URL: ${finalImageUrl}`);
+      } 
+      // If no image URL, set default image
+      else if (!finalImageUrl) {
+        finalImageUrl = getDefaultImage(data.title);
+        console.log(`No image URL, using default: ${finalImageUrl}`);
+      }
+      
+      setGoalData({
+        ...data,
+        image_url: finalImageUrl
+      });
+
+      // If no tasks yet, we assume content generation is still in progress
+      const contentGenerationInProgress = !data.task_summary;
+      setCreationInProgress(contentGenerationInProgress);
+      
+      // If content generation is complete but we have no tasks, fetch them
+      if (!contentGenerationInProgress && tasks.length === 0) {
+        fetchTasks();
+      }
+      
+      return contentGenerationInProgress;
+    } catch (error: any) {
+      console.error("Error fetching goal details:", error);
+      toast.error(`Error fetching goal details: ${error.message}`);
+      navigate('/dashboard');
+      return false;
+    } finally {
+      setIsLoading(false);
+      setImageLoading(false);
+    }
+  }, [goalId, navigate, fetchTasks, tasks.length]);
+
+  // Initial data load
   useEffect(() => {
-    const fetchGoalDetails = async () => {
-      try {
-        if (!goalId) return;
-        
-        setIsLoading(true);
-        setImageLoading(true);
-        
-        const { data, error } = await supabase
-          .from('goals')
-          .select('*')
-          .eq('id', goalId)
-          .single();
-          
-        if (error) throw error;
-        
-        // If we have a Replicate image URL, force a cache-busting parameter
-        let finalImageUrl = data.image_url;
-        if (finalImageUrl && finalImageUrl.includes('replicate.delivery')) {
-          // Don't add cache-busting parameter yet, we'll add it during render
-          // Just make sure the URL is valid
-          console.log(`Found Replicate image URL: ${finalImageUrl}`);
-        } 
-        // If no image URL, set default image
-        else if (!finalImageUrl) {
-          finalImageUrl = getDefaultImage(data.title);
-          console.log(`No image URL, using default: ${finalImageUrl}`);
-        }
-        
-        setGoalData({
-          ...data,
-          image_url: finalImageUrl
-        });
-
-        // If no tasks yet, we assume content generation is still in progress
-        setCreationInProgress(!data.task_summary);
-
-        // Set up polling if content generation is in progress
-        if (!data.task_summary) {
-          const intervalId = setInterval(async () => {
-            const { data: updatedData, error: pollError } = await supabase
-              .from('goals')
-              .select('task_summary')
-              .eq('id', goalId)
-              .single();
-              
-            if (!pollError && updatedData && updatedData.task_summary) {
-              setCreationInProgress(false);
-              clearInterval(intervalId);
-              
-              // Refresh the goal data and tasks once content is ready
-              fetchGoalDetails();
-              toast.success("Goal content has been generated successfully!");
-            }
-          }, 5000); // Check every 5 seconds
-          
-          // Clean up interval
-          return () => clearInterval(intervalId);
-        }
-        
-      } catch (error: any) {
-        toast.error(`Error fetching goal details: ${error.message}`);
-        navigate('/dashboard');
-      } finally {
-        setIsLoading(false);
-        setImageLoading(false);
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      setImageLoading(true);
+      const isGenerating = await fetchGoalDetails();
+      
+      // Start polling if content generation is in progress
+      if (isGenerating) {
+        setPollingActive(true);
+        setLastPollTime(Date.now());
       }
     };
     
-    fetchGoalDetails();
-  }, [goalId, navigate]);
+    loadInitialData();
+  }, [fetchGoalDetails]);
+
+  // Polling mechanism for content generation
+  useEffect(() => {
+    if (!pollingActive || !goalId) return;
+    
+    const POLL_INTERVAL = 3000; // 3 seconds
+    const MAX_POLLING_TIME = 120000; // 2 minutes (as a safety measure)
+    
+    const pollForContentGeneration = async () => {
+      const now = Date.now();
+      const pollingDuration = now - lastPollTime;
+      
+      // Safety check to stop polling after MAX_POLLING_TIME
+      if (pollingDuration > MAX_POLLING_TIME) {
+        console.log("Stopped polling after reaching max polling time");
+        setPollingActive(false);
+        return;
+      }
+
+      console.log("Polling for content generation completion...");
+      const isStillGenerating = await fetchGoalDetails();
+      
+      // If content generation is complete
+      if (!isStillGenerating) {
+        console.log("Content generation complete, stopping polling");
+        setPollingActive(false);
+        fetchTasks();
+        toast.success("Goal content has been generated successfully!");
+      }
+    };
+    
+    const intervalId = setInterval(pollForContentGeneration, POLL_INTERVAL);
+    
+    // Clean up interval on unmount or when polling stops
+    return () => clearInterval(intervalId);
+  }, [pollingActive, goalId, fetchGoalDetails, lastPollTime, fetchTasks]);
 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 0;
