@@ -59,9 +59,7 @@ const Hero: React.FC = () => {
             </p>
             
             <div className="grid grid-cols-2 gap-6 mt-8">
-              <Button size="lg" className="text-base px-8 py-6 rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">
-                Try Setting Your First Goal Now
-              </Button>
+              <Button size="lg" className="text-base px-8 py-6 rounded-full bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">Set Your First Goal Now</Button>
               <p className="text-sm text-foreground/60 italic self-center">It's easier than you think.</p>
             </div>
           </div>
