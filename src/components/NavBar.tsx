@@ -2,15 +2,25 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X, LogIn, User } from "lucide-react";
+import { Menu, X, LogIn, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
 const NavBar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -58,6 +68,25 @@ const NavBar: React.FC = () => {
     }
     setMobileMenuOpen(false);
   };
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Signed out successfully",
+      description: "You have been logged out"
+    });
+    
+    navigate("/");
+  };
   
   return <>
       <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 md:px-10", isScrolled ? "py-3 glass-effect shadow-subtle" : "py-4 sm:py-6 bg-transparent")}>
@@ -72,19 +101,37 @@ const NavBar: React.FC = () => {
                 {item}
               </a>)}
             
-            {isLoggedIn ? <div className="flex items-center space-x-4">
-                <Link to="/dashboard">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span>{userEmail || "Dashboard"}</span>
-                  </Button>
-                </Link>
-              </div> : <Link to="/auth">
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>{userEmail || "Dashboard"}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="w-full cursor-pointer">
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <Link to="/auth">
                 <Button variant="outline" className="flex items-center gap-2">
                   <LogIn className="h-4 w-4" />
                   <span>Login</span>
                 </Button>
-              </Link>}
+              </Link>
+            )}
           </nav>
 
           <button className="md:hidden focus:outline-none" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
@@ -101,13 +148,29 @@ const NavBar: React.FC = () => {
                 {item}
               </a>)}
             
-            {isLoggedIn ? <Link to="/dashboard" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
-                <User className="h-4 w-4" />
-                <span>{userEmail || "Dashboard"}</span>
-              </Link> : <Link to="/auth" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
+            {isLoggedIn ? (
+              <>
+                <Link to="/dashboard" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
+                  <User className="h-4 w-4" />
+                  <span>{userEmail || "Dashboard"}</span>
+                </Link>
+                <button 
+                  onClick={() => {
+                    handleSignOut();
+                    setMobileMenuOpen(false);
+                  }} 
+                  className="text-sm font-medium py-2 flex items-center gap-2 text-destructive"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <Link to="/auth" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
                 <LogIn className="h-4 w-4" />
                 <span>Login</span>
-              </Link>}
+              </Link>
+            )}
           </nav>
         </div>
       </header>
