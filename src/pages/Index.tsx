@@ -1,8 +1,6 @@
-
 import React, { useEffect } from "react";
 import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
-
 const Index: React.FC = () => {
   useEffect(() => {
     // Add a class for custom background pattern
@@ -11,14 +9,12 @@ const Index: React.FC = () => {
       document.body.classList.remove("bg-pattern");
     };
   }, []);
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <main>
         <Hero />
         
         {/* About Section */}
-        <section id="about" className="py-24 px-6">
+        <section id="about" className="px-[45px] py-0">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
@@ -39,7 +35,7 @@ const Index: React.FC = () => {
                 </button>
               </div>
               
-              <div className="bg-primary/5 rounded-2xl aspect-square flex items-center justify-center">
+              <div className="bg-primary/5 aspect-square flex items-center justify-center rounded-none">
                 <div className="text-foreground/40">About Image Placeholder</div>
               </div>
             </div>
@@ -65,23 +61,13 @@ const Index: React.FC = () => {
                   <label htmlFor="name" className="text-sm font-medium">
                     Name
                   </label>
-                  <input
-                    id="name"
-                    type="text"
-                    className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="Your name"
-                  />
+                  <input id="name" type="text" className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Your name" />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium">
                     Email
                   </label>
-                  <input
-                    id="email"
-                    type="email"
-                    className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="Your email"
-                  />
+                  <input id="email" type="email" className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Your email" />
                 </div>
               </div>
               
@@ -89,18 +75,10 @@ const Index: React.FC = () => {
                 <label htmlFor="message" className="text-sm font-medium">
                   Message
                 </label>
-                <textarea
-                  id="message"
-                  rows={4}
-                  className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  placeholder="Your message"
-                />
+                <textarea id="message" rows={4} className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Your message" />
               </div>
               
-              <button
-                type="submit"
-                className="w-full px-8 py-3 rounded-lg bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md"
-              >
+              <button type="submit" className="w-full px-8 py-3 rounded-lg bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">
                 Send Message
               </button>
             </form>
@@ -108,8 +86,6 @@ const Index: React.FC = () => {
         </section>
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
