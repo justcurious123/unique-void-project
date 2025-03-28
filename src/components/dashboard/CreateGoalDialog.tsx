@@ -15,6 +15,7 @@ import {
 import { Goal } from "@/hooks/types/goalTypes";
 import GoalForm from "./GoalForm";
 import { useGoalCreation } from "@/hooks/useGoalCreation";
+import { useNavigate } from "react-router-dom";
 
 interface CreateGoalDialogProps {
   onCreateGoal: (newGoal: {
@@ -35,6 +36,7 @@ const CreateGoalDialog: React.FC<CreateGoalDialogProps> = ({
   createTask,
   fetchTasks,
 }) => {
+  const navigate = useNavigate();
   const [openGoalDialog, setOpenGoalDialog] = useState(false);
   const [newGoal, setNewGoal] = useState({
     title: "",
@@ -50,15 +52,31 @@ const CreateGoalDialog: React.FC<CreateGoalDialogProps> = ({
   });
 
   const onSubmit = async () => {
-    const success = await handleCreateGoal(newGoal, onCreateGoal);
-    if (success) {
+    // Validate form inputs
+    if (!newGoal.title.trim()) {
+      toast.error("Please enter a goal title");
+      return;
+    }
+    
+    // Close dialog immediately to improve perceived performance
+    setOpenGoalDialog(false);
+    
+    // Create the goal and get its ID
+    const goalId = await handleCreateGoal(newGoal, onCreateGoal);
+    
+    if (goalId) {
+      // Reset form for next time
       setNewGoal({
         title: "",
         description: "",
         target_date: ""
       });
-      setOpenGoalDialog(false);
-      toast.success("Financial goal created with AI-generated tasks and quizzes!");
+      
+      // Navigate to the goal detail page
+      navigate(`/goal/${goalId}`);
+      
+      // Show a helpful toast message about the background processes
+      toast.info("Creating your financial goal with AI-generated tasks and quizzes...");
     }
   };
 

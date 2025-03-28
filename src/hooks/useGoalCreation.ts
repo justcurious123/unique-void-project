@@ -149,7 +149,7 @@ export const useGoalCreation = ({
     }
   };
 
-  // Main function to handle goal creation, now using the extracted functions
+  // Main function to handle goal creation, now returning the goal ID for navigation
   const handleCreateGoal = async (newGoal: {
     title: string;
     description: string;
@@ -167,45 +167,52 @@ export const useGoalCreation = ({
       // Let the parent component know which goal was created
       onGoalCreated(createdGoal.id);
       
-      // Step 2: Generate goal content (tasks and quizzes)
-      const contentResult = await generateGoalContent(
+      // Step 2: Generate goal content (tasks and quizzes) in the background
+      generateGoalContent(
         newGoal.title, 
         newGoal.description, 
         createdGoal.id
-      );
+      ).then(async (contentResult) => {
+        const { tasks: generatedTasks, quizzes, goal_id } = contentResult;
+        
+        if (!goal_id || goal_id !== createdGoal.id) {
+          console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
+        }
+        
+        // Step 3: Generate goal image in parallel (already in background)
+        generateGoalImage(newGoal.title, createdGoal.id);
+        
+        // Step 4: Create tasks and quizzes
+        const createdTasks = await createTasksWithQuizzes(
+          generatedTasks,
+          quizzes,
+          createdGoal.id
+        );
+        
+        // Step 5: Generate and update task summary
+        const taskSummary = await generateTaskSummary(createdTasks);
+        await updateGoalWithTaskSummary(createdGoal.id, taskSummary);
+        
+        // Step 6: Refresh goals if task summary was updated
+        if (taskSummary) {
+          refreshGoals();
+        }
+        
+        // Step 7: Fetch tasks to update the UI
+        fetchTasks();
+        
+        // Show a completion notification
+        toast.success("Your financial goal has been created successfully!");
+      }).catch(error => {
+        console.error("Error generating goal content:", error);
+        toast.error("Error generating goal content, but goal was created");
+      });
       
-      const { tasks: generatedTasks, quizzes, goal_id } = contentResult;
-      
-      if (!goal_id || goal_id !== createdGoal.id) {
-        console.warn("Goal ID mismatch. Using created goal ID:", createdGoal.id);
-      }
-      
-      // Step 3: Generate goal image in parallel
-      generateGoalImage(newGoal.title, createdGoal.id);
-      
-      // Step 4: Create tasks and quizzes
-      const createdTasks = await createTasksWithQuizzes(
-        generatedTasks,
-        quizzes,
-        createdGoal.id
-      );
-      
-      // Step 5: Generate and update task summary
-      const taskSummary = await generateTaskSummary(createdTasks);
-      await updateGoalWithTaskSummary(createdGoal.id, taskSummary);
-      
-      // Step 6: Refresh goals if task summary was updated
-      if (taskSummary) {
-        refreshGoals();
-      }
-      
-      // Step 7: Fetch tasks to update the UI
-      fetchTasks();
-      
-      return true;
+      // Return the goal ID for immediate navigation
+      return createdGoal.id;
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
-      return false;
+      return null;
     } finally {
       setIsCreating(false);
     }

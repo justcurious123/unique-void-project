@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const GoalDetail = () => {
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null);
   const { tasks, isLoading: tasksLoading, updateTaskStatus } = useTasks(goalId || '');
   const [imageLoading, setImageLoading] = useState(false);
+  const [creationInProgress, setCreationInProgress] = useState(false);
 
   // Use the custom hook for task ordering
   const { sortedTasks } = useTaskOrder(goalId, tasks, tasksLoading);
@@ -61,6 +63,32 @@ const GoalDetail = () => {
           ...data,
           image_url: finalImageUrl
         });
+
+        // If no tasks yet, we assume content generation is still in progress
+        setCreationInProgress(!data.task_summary);
+
+        // Set up polling if content generation is in progress
+        if (!data.task_summary) {
+          const intervalId = setInterval(async () => {
+            const { data: updatedData, error: pollError } = await supabase
+              .from('goals')
+              .select('task_summary')
+              .eq('id', goalId)
+              .single();
+              
+            if (!pollError && updatedData && updatedData.task_summary) {
+              setCreationInProgress(false);
+              clearInterval(intervalId);
+              
+              // Refresh the goal data and tasks once content is ready
+              fetchGoalDetails();
+              toast.success("Goal content has been generated successfully!");
+            }
+          }, 5000); // Check every 5 seconds
+          
+          // Clean up interval
+          return () => clearInterval(intervalId);
+        }
         
       } catch (error: any) {
         toast.error(`Error fetching goal details: ${error.message}`);
@@ -135,17 +163,28 @@ const GoalDetail = () => {
               <CardDescription className="text-base sm:text-lg mt-1">{goalData.description}</CardDescription>
             </CardHeader>
             
-            <GoalProgress 
-              progressValue={progressValue}
-              summary={goalData.task_summary}
-            />
-            
-            <TasksSection
-              tasks={sortedTasks}
-              isLoading={tasksLoading}
-              onStatusChange={handleTaskStatusChange}
-              onQuizStart={setActiveQuizTaskId}
-            />
+            {creationInProgress ? (
+              <CardContent className="py-6 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                  AI is generating tasks and quizzes for your goal...
+                </p>
+              </CardContent>
+            ) : (
+              <>
+                <GoalProgress 
+                  progressValue={progressValue}
+                  summary={goalData.task_summary}
+                />
+                
+                <TasksSection
+                  tasks={sortedTasks}
+                  isLoading={tasksLoading}
+                  onStatusChange={handleTaskStatusChange}
+                  onQuizStart={setActiveQuizTaskId}
+                />
+              </>
+            )}
           </Card>
           
           {activeQuizTaskId && (
