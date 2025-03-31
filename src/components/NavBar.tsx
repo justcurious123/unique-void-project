@@ -107,16 +107,10 @@ const NavBar: React.FC = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      <span>{userEmail || "Dashboard"}</span>
+                      <span>{userEmail || "Account"}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className="w-full cursor-pointer">
-                        Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
@@ -150,10 +144,6 @@ const NavBar: React.FC = () => {
             
             {isLoggedIn ? (
               <>
-                <Link to="/dashboard" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
-                  <User className="h-4 w-4" />
-                  <span>{userEmail || "Dashboard"}</span>
-                </Link>
                 <button 
                   onClick={() => {
                     handleSignOut();

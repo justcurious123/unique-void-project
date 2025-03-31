@@ -1,14 +1,32 @@
+
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+
 const Index: React.FC = () => {
+  const navigate = useNavigate();
+  
   useEffect(() => {
     // Add a class for custom background pattern
     document.body.classList.add("bg-pattern");
+    
+    // Check if user is logged in and redirect to dashboard if they are
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/dashboard");
+      }
+    };
+    
+    checkAuth();
+    
     return () => {
       document.body.classList.remove("bg-pattern");
     };
-  }, []);
+  }, [navigate]);
+  
   return <div className="min-h-screen">
       <main>
         <Hero />
