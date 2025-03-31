@@ -9,6 +9,45 @@ import { validateEnvironment, validateRequestData } from "./validationUtils.ts";
 import { generateCustomPrompt, generateImage, validateImageUrl } from "./imageGenerationUtils.ts";
 import { updateGoalWithImage, setFallbackImage, getDefaultImage } from "./databaseUtils.ts";
 
+// Function to download and upload image to Supabase storage
+async function uploadImageToStorage(imageUrl: string, goalTitle: string, goalId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase configuration missing");
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Fetch the image
+  const imageResponse = await fetch(imageUrl);
+  const imageBlob = await imageResponse.blob();
+  
+  // Generate a unique filename
+  const filename = `goal_${goalId}_${Date.now()}.webp`;
+  
+  // Upload to Supabase storage
+  const { data, error } = await supabase.storage
+    .from('goal_images')
+    .upload(filename, imageBlob, {
+      contentType: 'image/webp',
+      upsert: true
+    });
+  
+  if (error) {
+    console.error("Error uploading image to storage:", error);
+    throw error;
+  }
+  
+  // Get public URL
+  const { data: publicUrlData } = supabase.storage
+    .from('goal_images')
+    .getPublicUrl(filename);
+  
+  return publicUrlData.publicUrl;
+}
+
 // Main handler function
 serve(async (req) => {
   // Handle CORS
@@ -32,23 +71,19 @@ serve(async (req) => {
       // Generate image with Replicate
       const imageUrl = await generateImage(imagePrompt, REPLICATE_API_KEY);
       
-      // Validate the image URL
-      const isValid = await validateImageUrl(imageUrl);
+      // Download and upload image to Supabase storage
+      const storedImageUrl = await uploadImageToStorage(imageUrl, goalTitle, goalId);
       
-      if (!isValid) {
-        console.warn("Image URL validation failed, but continuing anyway");
-      }
-      
-      // Update the goal with the image URL
-      await updateGoalWithImage(goalId, imageUrl);
+      // Update the goal with the Supabase storage URL
+      await updateGoalWithImage(goalId, storedImageUrl);
       
       // Log the success
-      console.log(`Goal image generated: ${imageUrl}`);
+      console.log(`Goal image generated and stored: ${storedImageUrl}`);
       console.log(`Using custom prompt: ${imagePrompt}`);
 
       return new Response(
         JSON.stringify({ 
-          output: imageUrl,
+          output: storedImageUrl,
           message: "Image generated and saved to goal record",
           prompt: imagePrompt
         }), {

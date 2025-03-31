@@ -32,8 +32,11 @@ export const useImageLoader = ({
       return;
     }
 
-    // For local images from our public directory, just use them directly
-    if (url.startsWith('/lovable-uploads/')) {
+    // Skip validation for local uploads and Supabase storage images
+    if (
+      url.startsWith('/lovable-uploads/') || 
+      url.includes('.supabase.co/storage/v1/object/public/goal_images/')
+    ) {
       setDisplayImageUrl(url);
       setIsLoading(false);
       setHasError(false);

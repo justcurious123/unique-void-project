@@ -29,8 +29,11 @@ export const getDefaultImage = (goalTitle: string): string => {
 
 export const validateImageUrl = async (url: string): Promise<boolean> => {
   try {
-    // Skip validation for local images
-    if (url.startsWith('/lovable-uploads/')) {
+    // Skip validation for local and Supabase storage images
+    if (
+      url.startsWith('/lovable-uploads/') || 
+      url.includes('.supabase.co/storage/v1/object/public/goal_images/')
+    ) {
       return true;
     }
     
@@ -56,6 +59,7 @@ export const validateImageUrl = async (url: string): Promise<boolean> => {
   }
 };
 
+// Preload goal image with extended support for storage URLs
 export const preloadGoalImage = (
   goal: { id: string; title: string; image_url?: string },
   onSuccess: (goalId: string) => void,
@@ -67,8 +71,11 @@ export const preloadGoalImage = (
     return;
   }
 
-  // For local images, don't try to preload - they're already reliable
-  if (goal.image_url.startsWith('/lovable-uploads/')) {
+  // For local or Supabase storage images, don't try to preload
+  if (
+    goal.image_url.startsWith('/lovable-uploads/') || 
+    goal.image_url.includes('.supabase.co/storage/v1/object/public/goal_images/')
+  ) {
     onSuccess(goal.id);
     return;
   }
@@ -98,7 +105,7 @@ export const preloadGoalImage = (
   img.src = goal.image_url;
 };
 
-// Apply image properties to goals
+// Apply image properties to goals with extended storage support
 export const applyImagePropertiesToGoals = (goals: any[]) => {
   return goals.map(goal => {
     let imageUrl = goal.image_url;
@@ -108,13 +115,15 @@ export const applyImagePropertiesToGoals = (goals: any[]) => {
       imageUrl = getDefaultImage(goal.title);
     }
     
-    // For explicitly local URLs (from our public dir), mark as non-loading
-    const isLocalImage = imageUrl && imageUrl.startsWith('/lovable-uploads/');
+    // For local images or Supabase storage, mark as non-loading
+    const isLocalOrStorageImage = 
+      imageUrl.startsWith('/lovable-uploads/') || 
+      imageUrl.includes('.supabase.co/storage/v1/object/public/goal_images/');
     
     return {
       ...goal,
       image_url: imageUrl,
-      image_loading: !isLocalImage, // Only set loading true for non-local images
+      image_loading: !isLocalOrStorageImage, // Only set loading true for non-local images
       image_error: false
     };
   });
