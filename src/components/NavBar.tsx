@@ -42,11 +42,17 @@ const NavBar: React.FC = () => {
       
       // Check if user is an admin
       if (data.session?.user) {
-        const { error } = await (supabase.rpc as any)('has_role', {
-          _role: 'admin'
-        });
-        
-        setIsAdmin(!error);
+        try {
+          const { data: hasRoleData, error } = await (supabase.rpc as any)('has_role', {
+            _role: 'admin'
+          });
+          
+          // Only set as admin if the data is true and there's no error
+          setIsAdmin(hasRoleData === true && !error);
+        } catch (err) {
+          console.error("Error checking admin role:", err);
+          setIsAdmin(false);
+        }
       }
     };
     
@@ -61,11 +67,17 @@ const NavBar: React.FC = () => {
         
         // Check if user is an admin
         if (session?.user) {
-          const { error } = await (supabase.rpc as any)('has_role', {
-            _role: 'admin'
-          });
-          
-          setIsAdmin(!error);
+          try {
+            const { data: hasRoleData, error } = await (supabase.rpc as any)('has_role', {
+              _role: 'admin'
+            });
+            
+            // Only set as admin if the data is true and there's no error
+            setIsAdmin(hasRoleData === true && !error);
+          } catch (err) {
+            console.error("Error checking admin role:", err);
+            setIsAdmin(false);
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
@@ -106,7 +118,8 @@ const NavBar: React.FC = () => {
       description: "You have been logged out"
     });
     
-    navigate("/");
+    // Force page reload after sign out to clear any cached state
+    window.location.href = '/';
   };
   
   return <>

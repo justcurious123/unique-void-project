@@ -32,22 +32,34 @@ const Admin: React.FC = () => {
       }
 
       // Then check if the user has admin role
-      const { error } = await (supabase.rpc as any)('has_role', {
-        _role: 'admin'
-      });
-      
-      if (error) {
+      try {
+        const { data: hasRoleData, error } = await (supabase.rpc as any)('has_role', {
+          _role: 'admin'
+        });
+        
+        if (error || hasRoleData !== true) {
+          toast({
+            title: "Access denied",
+            description: "You don't have permission to access this page",
+            variant: "destructive"
+          });
+          navigate("/dashboard");
+          return;
+        }
+        
+        setIsAdmin(true);
+      } catch (err) {
+        console.error("Error checking admin access:", err);
         toast({
-          title: "Access denied",
-          description: "You don't have permission to access this page",
+          title: "Error",
+          description: "Failed to verify admin access",
           variant: "destructive"
         });
         navigate("/dashboard");
         return;
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsAdmin(true);
-      setIsLoading(false);
     };
     
     checkAdminAccess();
