@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "./UserRole";
-import { Search, UserPlus, Shield, User as UserIcon, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, UserIcon, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
@@ -37,6 +37,7 @@ export const UserManagement: React.FC = () => {
       const { data, error } = await (supabase.rpc as any)('get_all_users');
       
       if (error) {
+        console.error("Error fetching users:", error);
         toast({
           title: "Error fetching users",
           description: error.message,
@@ -45,7 +46,15 @@ export const UserManagement: React.FC = () => {
         return;
       }
       
-      setUsers(data || []);
+      // Map the returned data to our User type
+      const formattedUsers: User[] = data?.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+        roles: Array.isArray(user.roles) ? user.roles : []
+      })) || [];
+      
+      setUsers(formattedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -75,6 +84,7 @@ export const UserManagement: React.FC = () => {
       });
       
       if (error) {
+        console.error("Error adding admin role:", error);
         toast({
           title: "Error",
           description: error.message,
@@ -109,6 +119,7 @@ export const UserManagement: React.FC = () => {
       });
       
       if (error) {
+        console.error("Error removing admin role:", error);
         toast({
           title: "Error",
           description: error.message,
