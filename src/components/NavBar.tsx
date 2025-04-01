@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X, LogIn, User, LogOut } from "lucide-react";
+import { Menu, X, LogIn, User, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -19,6 +19,7 @@ const NavBar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -35,21 +36,41 @@ const NavBar: React.FC = () => {
       const {
         data
       } = await supabase.auth.getSession();
+      
       setIsLoggedIn(!!data.session);
       setUserEmail(data.session?.user?.email || null);
+      
+      // Check if user is an admin
+      if (data.session?.user) {
+        const { error } = await supabase.rpc('has_role', {
+          _role: 'admin'
+        });
+        
+        setIsAdmin(!error);
+      }
     };
     
     checkAuthStatus();
     
     const {
       data: authListener
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         setIsLoggedIn(true);
         setUserEmail(session?.user?.email || null);
+        
+        // Check if user is an admin
+        if (session?.user) {
+          const { error } = await supabase.rpc('has_role', {
+            _role: 'admin'
+          });
+          
+          setIsAdmin(!error);
+        }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setUserEmail(null);
+        setIsAdmin(false);
       }
     });
     
@@ -108,6 +129,13 @@ const NavBar: React.FC = () => {
               </a>
             ))}
             
+            {isLoggedIn && isAdmin && (
+              <Link to="/admin" className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground flex items-center gap-1">
+                <Shield className="h-4 w-4" />
+                <span>Admin</span>
+              </Link>
+            )}
+            
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
                 <DropdownMenu>
@@ -118,6 +146,17 @@ const NavBar: React.FC = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="flex items-center cursor-pointer">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Admin Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
@@ -155,6 +194,17 @@ const NavBar: React.FC = () => {
                 {item}
               </a>
             ))}
+
+            {isLoggedIn && isAdmin && (
+              <Link 
+                to="/admin" 
+                className="text-sm font-medium text-foreground/80 py-2 flex items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Shield className="h-4 w-4" />
+                <span>Admin Dashboard</span>
+              </Link>
+            )}
             
             {isLoggedIn ? (
               <>

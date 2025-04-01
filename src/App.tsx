@@ -8,6 +8,7 @@ import Auth from './pages/Auth';
 import NotFound from './pages/NotFound';
 import { Toaster } from "@/components/ui/toaster"
 import GoalDetail from './pages/GoalDetail';
+import Admin from './pages/Admin';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="goal/:goalId" element={<GoalDetail />} />
           <Route path="auth" element={<Auth />} />
+          <Route path="admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
