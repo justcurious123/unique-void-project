@@ -42,7 +42,7 @@ const NavBar: React.FC = () => {
       
       // Check if user is an admin
       if (data.session?.user) {
-        const { error } = await supabase.rpc('has_role', {
+        const { error } = await (supabase.rpc as any)('has_role', {
           _role: 'admin'
         });
         
@@ -61,7 +61,7 @@ const NavBar: React.FC = () => {
         
         // Check if user is an admin
         if (session?.user) {
-          const { error } = await supabase.rpc('has_role', {
+          const { error } = await (supabase.rpc as any)('has_role', {
             _role: 'admin'
           });
           

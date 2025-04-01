@@ -32,7 +32,7 @@ const Admin: React.FC = () => {
       }
 
       // Then check if the user has admin role
-      const { error } = await supabase.rpc('has_role', {
+      const { error } = await (supabase.rpc as any)('has_role', {
         _role: 'admin'
       });
       

@@ -33,7 +33,8 @@ export const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_all_users');
+      // Using a type assertion to bypass TypeScript's type checking
+      const { data, error } = await (supabase.rpc as any)('get_all_users');
       
       if (error) {
         toast({
@@ -67,7 +68,8 @@ export const UserManagement: React.FC = () => {
 
   const handleAddAdmin = async (userId: string) => {
     try {
-      const { error } = await supabase.rpc('add_role_to_user', {
+      // Using a type assertion to bypass TypeScript's type checking
+      const { error } = await (supabase.rpc as any)('add_role_to_user', {
         target_user_id: userId,
         target_role: 'admin'
       });
@@ -100,7 +102,8 @@ export const UserManagement: React.FC = () => {
 
   const handleRemoveAdmin = async (userId: string) => {
     try {
-      const { error } = await supabase.rpc('remove_role_from_user', {
+      // Using a type assertion to bypass TypeScript's type checking
+      const { error } = await (supabase.rpc as any)('remove_role_from_user', {
         target_user_id: userId,
         target_role: 'admin'
       });
