@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,18 +26,36 @@ const Auth: React.FC = () => {
     checkUser();
   }, [navigate]);
 
+  // Set up auth state listener for session changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event);
+        if (session) {
+          navigate("/dashboard");
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
+        
+        console.log("Login successful:", data.session);
         
         toast({
           title: "Login successful",
@@ -45,19 +64,33 @@ const Auth: React.FC = () => {
         
         navigate("/dashboard");
       } else {
-        const { error } = await supabase.auth.signUp({
+        console.log("Attempting to sign up with:", email);
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
         });
 
         if (error) throw error;
         
-        toast({
-          title: "Registration successful",
-          description: "Please check your email to confirm your account",
-        });
+        console.log("Signup response:", data);
+        
+        if (data.user && !data.session) {
+          // Email confirmation required
+          toast({
+            title: "Registration successful",
+            description: "Please check your email to confirm your account",
+          });
+        } else if (data.session) {
+          // Auto-confirmed, redirect to dashboard
+          toast({
+            title: "Registration successful",
+            description: "Welcome to WayToPoint!",
+          });
+          navigate("/dashboard");
+        }
       }
     } catch (error: any) {
+      console.error("Auth error:", error.message);
       toast({
         title: "Error",
         description: error.message || "An error occurred",
@@ -67,6 +100,27 @@ const Auth: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Add a timeout to reset loading state after 8 seconds
+  // This prevents the UI from being stuck if there's a network issue
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
+    if (loading) {
+      timeout = setTimeout(() => {
+        setLoading(false);
+        toast({
+          title: "Connection issue",
+          description: "There might be a problem with your connection. Please try again.",
+          variant: "destructive",
+        });
+      }, 8000);
+    }
+    
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [loading, toast]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-pattern">
@@ -90,6 +144,7 @@ const Auth: React.FC = () => {
               required
               placeholder="your@email.com"
               className="bg-white/50"
+              disabled={loading}
             />
           </div>
           
@@ -105,6 +160,7 @@ const Auth: React.FC = () => {
               required
               placeholder="••••••••"
               className="bg-white/50"
+              disabled={loading}
             />
           </div>
           
@@ -134,6 +190,7 @@ const Auth: React.FC = () => {
             type="button"
             onClick={() => setIsLogin(!isLogin)}
             className="text-sm text-primary hover:underline"
+            disabled={loading}
           >
             {isLogin
               ? "Don't have an account? Sign up"
