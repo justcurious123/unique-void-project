@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -117,9 +118,9 @@ export function FinancialChat() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_messages" },
-        (payload) => {
+        (payload: any) => {
           if (payload.new && payload.new.thread_id === threadId) {
-            setMessages((prevMessages) => [...prevMessages, payload.new]);
+            setMessages((prevMessages) => [...prevMessages, payload.new as ChatMessage]);
           }
         }
       )
@@ -250,6 +251,7 @@ export function FinancialChat() {
     
     try {
       // After successfully sending a message, increment usage counter
+      // We need to call the function directly via RPC since it's defined in the database
       await supabase.rpc('increment_usage', { usage_type: 'message' });
     } catch (error) {
       console.error("Failed to track message usage:", error);
@@ -317,11 +319,11 @@ export function FinancialChat() {
             Select a chat to start messaging.
           </div>
         )}
-        {messages.map((msg, index) => (
+        {messages.map((msg) => (
           <div
             key={msg.id}
             className={`mb-3 rounded-md px-3 py-2 w-fit max-w-[75%] ${
-              msg.sender === supabase.auth.currentUser?.id
+              msg.sender === (supabase.auth.getUser())?.data?.user?.id
                 ? "bg-blue-100 ml-auto"
                 : "bg-gray-100"
             }`}
