@@ -30,11 +30,21 @@ export function FinancialChat() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [isThreadsOpen, setIsThreadsOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   const { usageData, isLoading: isLoadingSubscription } = useSubscription();
   const { messageLimitReached } = useLimits(usageData);
+  
+  // Get current user ID
+  useEffect(() => {
+    async function getCurrentUser() {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    }
+    getCurrentUser();
+  }, []);
   
   const scrollToBottom = () => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -323,7 +333,7 @@ export function FinancialChat() {
           <div
             key={msg.id}
             className={`mb-3 rounded-md px-3 py-2 w-fit max-w-[75%] ${
-              msg.sender === (supabase.auth.getUser())?.data?.user?.id
+              msg.sender === currentUserId
                 ? "bg-blue-100 ml-auto"
                 : "bg-gray-100"
             }`}

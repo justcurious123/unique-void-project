@@ -52,8 +52,18 @@ export const useSubscription = () => {
         return;
       }
 
-      setCurrentPlan(subscriptionData);
-      setUsageData(usageLimitsData);
+      if (subscriptionData) {
+        setCurrentPlan(subscriptionData as SubscriptionPlan);
+      }
+      
+      if (usageLimitsData) {
+        // Parse the JSON if it's a string, or use directly if it's already an object
+        const usageDataObject = typeof usageLimitsData === 'string' 
+          ? JSON.parse(usageLimitsData) 
+          : usageLimitsData;
+          
+        setUsageData(usageDataObject as UsageData);
+      }
     } catch (err: any) {
       console.error("Unexpected error in useSubscription:", err);
       setError(err.message || "An unexpected error occurred");
@@ -97,10 +107,14 @@ export const useSubscription = () => {
 
   // Fetch data on mount
   useEffect(() => {
-    const session = supabase.auth.getSession();
-    if (session) {
-      fetchSubscriptionData();
-    }
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        fetchSubscriptionData();
+      }
+    };
+    
+    checkSession();
     
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
