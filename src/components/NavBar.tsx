@@ -1,19 +1,11 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Menu, X, LogIn, User, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
 const NavBar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,8 +13,9 @@ const NavBar: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -30,23 +23,24 @@ const NavBar: React.FC = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  
   useEffect(() => {
     const checkAuthStatus = async () => {
       const {
         data
       } = await supabase.auth.getSession();
-      
       setIsLoggedIn(!!data.session);
       setUserEmail(data.session?.user?.email || null);
-      
+
       // Check if user is an admin
       if (data.session?.user) {
         try {
-          const { data: hasRoleData, error } = await (supabase.rpc as any)('has_role', {
+          const {
+            data: hasRoleData,
+            error
+          } = await (supabase.rpc as any)('has_role', {
             _role: 'admin'
           });
-          
+
           // Only set as admin if the data is true and there's no error
           setIsAdmin(hasRoleData === true && !error);
         } catch (err) {
@@ -55,23 +49,24 @@ const NavBar: React.FC = () => {
         }
       }
     };
-    
     checkAuthStatus();
-    
     const {
       data: authListener
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         setIsLoggedIn(true);
         setUserEmail(session?.user?.email || null);
-        
+
         // Check if user is an admin
         if (session?.user) {
           try {
-            const { data: hasRoleData, error } = await (supabase.rpc as any)('has_role', {
+            const {
+              data: hasRoleData,
+              error
+            } = await (supabase.rpc as any)('has_role', {
               _role: 'admin'
             });
-            
+
             // Only set as admin if the data is true and there's no error
             setIsAdmin(hasRoleData === true && !error);
           } catch (err) {
@@ -85,12 +80,10 @@ const NavBar: React.FC = () => {
         setIsAdmin(false);
       }
     });
-    
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
-  
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
     const element = document.getElementById(id);
@@ -101,9 +94,10 @@ const NavBar: React.FC = () => {
     }
     setMobileMenuOpen(false);
   };
-
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    const {
+      error
+    } = await supabase.auth.signOut();
     if (error) {
       toast({
         title: "Error signing out",
@@ -112,16 +106,14 @@ const NavBar: React.FC = () => {
       });
       return;
     }
-    
     toast({
       title: "Signed out successfully",
       description: "You have been logged out"
     });
-    
+
     // Force page reload after sign out to clear any cached state
     window.location.href = '/';
   };
-  
   return <>
       <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 md:px-10", isScrolled ? "py-3 glass-effect shadow-subtle" : "py-4 sm:py-6 bg-transparent")}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -131,26 +123,14 @@ const NavBar: React.FC = () => {
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">
-            {!isLoggedIn && ["About", "Contact"].map(item => (
-              <a 
-                key={item} 
-                href={`#${item.toLowerCase()}`} 
-                className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground" 
-                onClick={e => handleNavClick(e, item.toLowerCase())}
-              >
-                {item}
-              </a>
-            ))}
+            {!isLoggedIn && ["About", "Contact"].map(item => {})}
             
-            {isLoggedIn && isAdmin && (
-              <Link to="/admin" className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground flex items-center gap-1">
+            {isLoggedIn && isAdmin && <Link to="/admin" className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground flex items-center gap-1">
                 <Shield className="h-4 w-4" />
                 <span>Admin</span>
-              </Link>
-            )}
+              </Link>}
             
-            {isLoggedIn ? (
-              <div className="flex items-center space-x-4">
+            {isLoggedIn ? <div className="flex items-center space-x-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
@@ -159,8 +139,7 @@ const NavBar: React.FC = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {isAdmin && (
-                      <>
+                    {isAdmin && <>
                         <DropdownMenuItem asChild>
                           <Link to="/admin" className="flex items-center cursor-pointer">
                             <Shield className="h-4 w-4 mr-2" />
@@ -168,23 +147,19 @@ const NavBar: React.FC = () => {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                      </>
-                    )}
+                      </>}
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-            ) : (
-              <Link to="/auth">
+              </div> : <Link to="/auth">
                 <Button variant="outline" className="flex items-center gap-2">
                   <LogIn className="h-4 w-4" />
                   <span>Login</span>
                 </Button>
-              </Link>
-            )}
+              </Link>}
           </nav>
 
           <button className="md:hidden focus:outline-none" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
@@ -194,50 +169,30 @@ const NavBar: React.FC = () => {
 
         <div className={cn("absolute top-full left-0 right-0 glass-effect shadow-md md:hidden transition-all duration-300 ease-in-out overflow-hidden", mobileMenuOpen ? "max-h-96 py-4" : "max-h-0 py-0")}>
           <nav className="flex flex-col space-y-4 px-4">
-            {!isLoggedIn && ["About", "Contact"].map(item => (
-              <a 
-                key={item} 
-                href={`#${item.toLowerCase()}`} 
-                className="text-sm font-medium text-foreground/80 py-2 transition-colors hover:text-foreground" 
-                onClick={e => {
-                  handleNavClick(e, item.toLowerCase());
-                  setMobileMenuOpen(false);
-                }}
-              >
+            {!isLoggedIn && ["About", "Contact"].map(item => <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium text-foreground/80 py-2 transition-colors hover:text-foreground" onClick={e => {
+            handleNavClick(e, item.toLowerCase());
+            setMobileMenuOpen(false);
+          }}>
                 {item}
-              </a>
-            ))}
+              </a>)}
 
-            {isLoggedIn && isAdmin && (
-              <Link 
-                to="/admin" 
-                className="text-sm font-medium text-foreground/80 py-2 flex items-center gap-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+            {isLoggedIn && isAdmin && <Link to="/admin" className="text-sm font-medium text-foreground/80 py-2 flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
                 <Shield className="h-4 w-4" />
                 <span>Admin Dashboard</span>
-              </Link>
-            )}
+              </Link>}
             
-            {isLoggedIn ? (
-              <>
-                <button 
-                  onClick={() => {
-                    handleSignOut();
-                    setMobileMenuOpen(false);
-                  }} 
-                  className="text-sm font-medium py-2 flex items-center gap-2 text-destructive"
-                >
+            {isLoggedIn ? <>
+                <button onClick={() => {
+              handleSignOut();
+              setMobileMenuOpen(false);
+            }} className="text-sm font-medium py-2 flex items-center gap-2 text-destructive">
                   <LogOut className="h-4 w-4" />
                   <span>Sign Out</span>
                 </button>
-              </>
-            ) : (
-              <Link to="/auth" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
+              </> : <Link to="/auth" className="text-sm font-medium py-2 flex items-center gap-2 text-primary" onClick={() => setMobileMenuOpen(false)}>
                 <LogIn className="h-4 w-4" />
                 <span>Login</span>
-              </Link>
-            )}
+              </Link>}
           </nav>
         </div>
       </header>

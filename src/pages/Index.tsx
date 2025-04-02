@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Hero from "@/components/Hero";
@@ -8,40 +7,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  
   useEffect(() => {
     // Add a class for custom background pattern
     document.body.classList.add("bg-pattern");
-    
+
     // Check if user is logged in and redirect to dashboard if they are
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
+      const {
+        data
+      } = await supabase.auth.getSession();
       if (data.session) {
         navigate("/dashboard");
       }
     };
-    
     checkAuth();
-    
     return () => {
       document.body.classList.remove("bg-pattern");
     };
   }, [navigate]);
-  
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <main>
         <Hero />
         
         {/* How It Works Section */}
         <section id="features" className="py-24 px-6 relative bg-gradient-to-b from-white to-secondary/20">
           <div className="max-w-7xl mx-auto">
-            <div 
-              className="text-center mb-16"
-            >
+            <div className="text-center mb-16">
               <div className="inline-block mb-4 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide">
                 How It Works
               </div>
@@ -154,60 +147,16 @@ const Index: React.FC = () => {
                 </Button>
               </Link>
               <Link to="/#features">
-                <Button size="lg" variant="outline" className="text-base rounded-full">
-                  Learn More
-                </Button>
+                
               </Link>
             </div>
           </div>
         </section>
         
         {/* Contact Section */}
-        <section id="contact" className="py-24 px-6 bg-white">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-block mb-4 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium tracking-wide">
-              Contact
-            </div>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight mb-6">
-              Get in touch
-            </h2>
-            <p className="text-lg text-foreground/70 max-w-2xl mx-auto mb-10">
-              Have questions about how WayToPoint can help with your specific goals? We'd love to hear from you.
-            </p>
-            
-            <form className="glass-card rounded-2xl p-8 space-y-6 text-left">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Name
-                  </label>
-                  <input id="name" type="text" className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Your name" />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <input id="email" type="email" className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Your email" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="message" className="text-sm font-medium">
-                  Message
-                </label>
-                <textarea id="message" rows={4} className="w-full px-4 py-2.5 rounded-lg border border-border bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Your message" />
-              </div>
-              
-              <button type="submit" className="w-full px-8 py-3 rounded-lg bg-primary text-white font-medium transition-all hover:bg-primary/90 hover:shadow-md">
-                Send Message
-              </button>
-            </form>
-          </div>
-        </section>
+        
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
