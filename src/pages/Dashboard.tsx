@@ -1,35 +1,46 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { MessageSquare, User, Flag } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import GoalsTab from "@/components/dashboard/GoalsTab";
 import ChatTab from "@/components/dashboard/ChatTab";
 import ProfileTab from "@/components/dashboard/ProfileTab";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("goals");
+  const [activeTab, setActiveTab] = React.useState("goals");
   const isMobile = useIsMobile();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        toast({
-          title: "Not authenticated",
-          description: "Please login to access the dashboard",
-          variant: "destructive"
-        });
-        navigate("/auth");
-      }
-    };
-    checkUser();
-  }, [navigate, toast]);
+    if (!isLoading && !user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please login to access the dashboard",
+        variant: "destructive"
+      });
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate, toast]);
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-center">
+        <p className="text-lg text-foreground/60">Loading...</p>
+      </div>
+    </div>;
+  }
+
+  // If not authenticated, return null (will be redirected)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-pattern py-1 sm:py-8 px-1 sm:px-6">

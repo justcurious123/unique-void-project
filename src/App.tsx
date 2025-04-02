@@ -9,21 +9,24 @@ import NotFound from './pages/NotFound';
 import { Toaster } from "@/components/ui/toaster"
 import GoalDetail from './pages/GoalDetail';
 import Admin from './pages/Admin';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<NavBar />}>
-          <Route index element={<Index />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="goal/:goalId" element={<GoalDetail />} />
-          <Route path="auth" element={<Auth />} />
-          <Route path="admin" element={<Admin />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-      <Toaster />
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<NavBar />}>
+            <Route index element={<Index />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="goal/:goalId" element={<GoalDetail />} />
+            <Route path="auth" element={<Auth />} />
+            <Route path="admin" element={<Admin />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+        <Toaster />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

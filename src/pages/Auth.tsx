@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { LogIn, UserPlus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,33 +15,14 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/dashboard");
-      }
-    };
-
-    checkUser();
-  }, [navigate]);
-
-  // Set up auth state listener for session changes
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event);
-        if (session) {
-          navigate("/dashboard");
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
+    // If user is logged in, redirect to dashboard
+    if (!isLoading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, isLoading, navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,46 +30,29 @@ const Auth: React.FC = () => {
 
     try {
       if (isLogin) {
-        const { error, data } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
-        
-        console.log("Login successful:", data.session);
         
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        
-        navigate("/dashboard");
       } else {
-        console.log("Attempting to sign up with:", email);
-        const { error, data } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
         });
 
         if (error) throw error;
         
-        console.log("Signup response:", data);
-        
-        if (data.user && !data.session) {
-          // Email confirmation required
-          toast({
-            title: "Registration successful",
-            description: "Please check your email to confirm your account",
-          });
-        } else if (data.session) {
-          // Auto-confirmed, redirect to dashboard
-          toast({
-            title: "Registration successful",
-            description: "Welcome to WayToPoint!",
-          });
-          navigate("/dashboard");
-        }
+        toast({
+          title: "Registration successful",
+          description: "Please check your email to confirm your account",
+        });
       }
     } catch (error: any) {
       console.error("Auth error:", error.message);
@@ -102,7 +67,6 @@ const Auth: React.FC = () => {
   };
 
   // Add a timeout to reset loading state after 8 seconds
-  // This prevents the UI from being stuck if there's a network issue
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     
@@ -121,6 +85,20 @@ const Auth: React.FC = () => {
       if (timeout) clearTimeout(timeout);
     };
   }, [loading, toast]);
+
+  // Show loading indicator while checking auth status
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-center">
+        <p className="text-lg text-foreground/60">Loading...</p>
+      </div>
+    </div>;
+  }
+
+  // If already authenticated, return null (will be redirected)
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-pattern">

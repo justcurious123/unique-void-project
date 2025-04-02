@@ -1,33 +1,48 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
 import Features from "@/components/Features";
-import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
+  
   useEffect(() => {
     // Add a class for custom background pattern
     document.body.classList.add("bg-pattern");
 
     // Check if user is logged in and redirect to dashboard if they are
-    const checkAuth = async () => {
-      const {
-        data
-      } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/dashboard");
-      }
-    };
-    checkAuth();
+    if (!isLoading && user) {
+      navigate("/dashboard");
+    }
+    
     return () => {
       document.body.classList.remove("bg-pattern");
     };
-  }, [navigate]);
-  return <div className="min-h-screen">
+  }, [navigate, user, isLoading]);
+
+  // Show landing page only for non-authenticated users
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-center">
+        <p className="text-lg text-foreground/60">Loading...</p>
+      </div>
+    </div>;
+  }
+
+  if (user) {
+    // This should be temporary during navigation
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen">
       <main>
         <Hero />
         
@@ -157,6 +172,8 @@ const Index: React.FC = () => {
         
       </main>
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
