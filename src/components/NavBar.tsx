@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,16 @@ const NavBar: React.FC = () => {
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">
-            {!user && ["About", "Contact"].map(item => {})}
+            {!user && ["About", "Contact"].map(item => (
+              <a 
+                key={item} 
+                href={`#${item.toLowerCase()}`} 
+                className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
+                onClick={(e) => handleNavClick(e, item.toLowerCase())}
+              >
+                {item}
+              </a>
+            ))}
             
             {isAdmin && <Link to="/admin" className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground flex items-center gap-1">
                 <Shield className="h-4 w-4" />
