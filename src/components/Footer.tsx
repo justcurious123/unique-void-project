@@ -1,27 +1,18 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Twitter, Instagram, Linkedin, Github } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-
 const Footer: React.FC = () => {
-  return (
-    <footer className="bg-white border-t border-border px-6 py-16 rounded-none">
+  return <footer className="bg-white border-t border-border px-6 py-16 rounded-none">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Column 1: Company */}
           <div className="space-y-4">
             <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/9c9ecc20-aa31-4cfb-8642-b9430ae12999.png" 
-                alt="WayToPoint Logo" 
-                className="h-8 mr-2" 
-              />
+              <img src="/lovable-uploads/9c9ecc20-aa31-4cfb-8642-b9430ae12999.png" alt="WayToPoint Logo" className="h-8 mr-2" />
               <span className="text-xl font-medium tracking-tight">WayToPoint</span>
             </div>
-            <p className="text-sm text-foreground/70">
-              Your personal navigator for life's biggest goals.
-            </p>
+            <p className="text-sm text-foreground/70">Your personal navigator for life's goals.</p>
           </div>
           
           {/* Column 2: Product */}
@@ -98,26 +89,24 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} WayToPoint. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            {[
-              { name: "Twitter", icon: <Twitter size={18} /> },
-              { name: "Instagram", icon: <Instagram size={18} /> },
-              { name: "LinkedIn", icon: <Linkedin size={18} /> },
-              { name: "GitHub", icon: <Github size={18} /> }
-            ].map((item) => (
-              <a
-                key={item.name}
-                href="#"
-                className="text-foreground/60 hover:text-primary transition-colors"
-                aria-label={item.name}
-              >
+            {[{
+            name: "Twitter",
+            icon: <Twitter size={18} />
+          }, {
+            name: "Instagram",
+            icon: <Instagram size={18} />
+          }, {
+            name: "LinkedIn",
+            icon: <Linkedin size={18} />
+          }, {
+            name: "GitHub",
+            icon: <Github size={18} />
+          }].map(item => <a key={item.name} href="#" className="text-foreground/60 hover:text-primary transition-colors" aria-label={item.name}>
                 {item.icon}
-              </a>
-            ))}
+              </a>)}
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
