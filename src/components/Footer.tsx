@@ -53,9 +53,7 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} WayToPoint. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            {["Twitter", "Instagram", "LinkedIn", "GitHub"].map(item => <a key={item} href="#" className="text-sm text-foreground/70 transition-colors hover:text-foreground">
-                {item}
-              </a>)}
+            {["Twitter", "Instagram", "LinkedIn", "GitHub"].map(item => {})}
           </div>
         </div>
       </div>
