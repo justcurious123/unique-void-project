@@ -136,6 +136,33 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          active: boolean
+          expires_at: string | null
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           article_content: string | null
@@ -177,6 +204,30 @@ export type Database = {
           },
         ]
       }
+      usage_tracking: {
+        Row: {
+          date: string
+          goals_created: number
+          id: string
+          messages_sent: number
+          user_id: string
+        }
+        Insert: {
+          date?: string
+          goals_created?: number
+          id?: string
+          messages_sent?: number
+          user_id: string
+        }
+        Update: {
+          date?: string
+          goals_created?: number
+          id?: string
+          messages_sent?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -216,6 +267,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_goal_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      check_message_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       get_all_users: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -225,11 +284,25 @@ export type Database = {
           roles: Json
         }[]
       }
+      get_user_plan: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["subscription_plan"]
+      }
+      get_user_usage_and_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: {
+          usage_type: string
+        }
+        Returns: undefined
       }
       remove_role_from_user: {
         Args: {
@@ -248,6 +321,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      subscription_plan: "free" | "monthly" | "annual"
     }
     CompositeTypes: {
       [_ in never]: never

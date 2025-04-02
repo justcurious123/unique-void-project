@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/toaster"
 import GoalDetail from './pages/GoalDetail';
 import Admin from './pages/Admin';
 import { AuthProvider } from './contexts/AuthContext';
+import Pricing from './pages/Pricing';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="goal/:goalId" element={<GoalDetail />} />
             <Route path="auth" element={<Auth />} />
             <Route path="admin" element={<Admin />} />
+            <Route path="pricing" element={<Pricing />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

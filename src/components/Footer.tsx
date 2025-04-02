@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Twitter, Instagram, Linkedin, Github } from "lucide-react";
@@ -30,9 +31,9 @@ const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                <Link to="/pricing" className="text-sm text-foreground/70 hover:text-primary transition-colors">
                   Pricing
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
