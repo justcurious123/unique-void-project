@@ -8,6 +8,7 @@ import { CalendarIcon, CreditCard } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import UsageLimits from "@/components/dashboard/UsageLimits";
 
 const ProfileTab = () => {
   const { user } = useAuth();
@@ -45,6 +46,11 @@ const ProfileTab = () => {
 
   return (
     <div className="space-y-3 sm:space-y-6">
+      {/* Usage Limits - Only shown in the Profile tab now */}
+      <div className="mb-4">
+        <UsageLimits />
+      </div>
+      
       <div className="bg-white/10 p-3 sm:p-6 rounded-lg">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">Your Profile</h2>
         <p className="mb-2 sm:mb-4 text-sm sm:text-base">Manage your account settings and profile information.</p>

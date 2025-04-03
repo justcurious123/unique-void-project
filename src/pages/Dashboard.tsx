@@ -9,7 +9,6 @@ import GoalsTab from "@/components/dashboard/GoalsTab";
 import ChatTab from "@/components/dashboard/ChatTab";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import { useAuth } from "@/contexts/AuthContext";
-import UsageLimits from "@/components/dashboard/UsageLimits";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -61,11 +60,6 @@ const Dashboard: React.FC = () => {
               <span className={isMobile ? "text-xs" : ""}>Profile</span>
             </TabsTrigger>
           </TabsList>
-          
-          {/* Usage Limits - shown at the top of all tabs */}
-          <div className="mb-4">
-            <UsageLimits />
-          </div>
           
           <TabsContent value="goals">
             <GoalsTab />
