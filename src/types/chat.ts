@@ -10,7 +10,7 @@ export interface ChatThread {
 export interface ChatMessage {
   id: string;
   thread_id: string;
-  sender: string;
+  sender: string; // This can be a user ID or "ai"
   content: string;
   created_at: string;
 }

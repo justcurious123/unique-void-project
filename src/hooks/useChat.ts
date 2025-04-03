@@ -135,8 +135,15 @@ export const useChat = () => {
     }
   };
 
-  const createThread = async (title?: string) => {
-    const threadTitle = title || "New Chat";
+  const createThread = async (title: string) => {
+    if (!title || typeof title !== 'string') {
+      toast({
+        title: "Invalid title",
+        description: "Please provide a valid title for the chat",
+        variant: "destructive",
+      });
+      return null;
+    }
     
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -151,7 +158,7 @@ export const useChat = () => {
 
       const { data, error } = await supabase
         .from("chat_threads")
-        .insert([{ title: threadTitle, user_id: session.session.user.id }])
+        .insert([{ title, user_id: session.session.user.id }])
         .select()
         .single();
 
@@ -189,9 +196,10 @@ export const useChat = () => {
     if (!content.trim()) return;
     
     // If no thread exists, create one first
-    if (!threadId) {
-      const newThreadId = await createThread();
-      if (!newThreadId) return; // Failed to create thread
+    let threadIdToUse = threadId;
+    if (!threadIdToUse) {
+      threadIdToUse = await createThread("New Chat");
+      if (!threadIdToUse) return; // Failed to create thread
     }
     
     if (messageLimitReached) {
@@ -216,25 +224,57 @@ export const useChat = () => {
         return;
       }
 
-      const { error } = await supabase
+      // Save user message
+      const { error: userMsgError } = await supabase
         .from("chat_messages")
         .insert([
           {
-            thread_id: threadId,
+            thread_id: threadIdToUse,
             sender: session.session.user.id,
             content: content,
           },
         ]);
 
-      if (error) {
-        console.error("Error sending message:", error);
-        setError(error.message);
+      if (userMsgError) {
+        console.error("Error sending message:", userMsgError);
+        setError(userMsgError.message);
         toast({
           title: "Error sending message",
-          description: error.message,
+          description: userMsgError.message,
           variant: "destructive",
         });
         return;
+      }
+      
+      // Generate AI response
+      try {
+        // Call OpenAI to generate a response
+        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('financial-advice', {
+          body: { question: content, threadId: threadIdToUse }
+        });
+        
+        if (aiError) throw aiError;
+        
+        // Save AI response to the database
+        if (aiResponse?.answer) {
+          await supabase
+            .from("chat_messages")
+            .insert([
+              {
+                thread_id: threadIdToUse,
+                sender: "ai",
+                content: aiResponse.answer,
+              },
+            ]);
+        }
+        
+      } catch (aiError: any) {
+        console.error("Error generating AI response:", aiError);
+        toast({
+          title: "Error from AI",
+          description: "Could not generate AI response. Try again later.",
+          variant: "destructive"
+        });
       }
       
       setError(null);

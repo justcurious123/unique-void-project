@@ -2,14 +2,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Plus } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface ChatThread {
-  id: string;
-  created_at: string;
-  title: string;
-}
+import { ChatThread } from "@/types/chat";
 
 interface ChatThreadListProps {
   threads: ChatThread[];

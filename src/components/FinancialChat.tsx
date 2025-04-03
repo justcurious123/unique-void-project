@@ -32,6 +32,18 @@ export function FinancialChat() {
     createThread("New Chat");
   };
 
+  const handleSendMessage = async (content: string) => {
+    // Create a thread if none exists
+    if (!threadId) {
+      const newThreadId = await createThread("New Chat");
+      if (newThreadId) {
+        await sendMessage(content);
+      }
+    } else {
+      await sendMessage(content);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(80vh-120px)] rounded-md overflow-hidden border border-gray-200">
       <div className="bg-white shadow-sm p-4 rounded-t-md flex justify-between items-center">
@@ -96,7 +108,7 @@ export function FinancialChat() {
           />
           
           <ChatInput
-            onSendMessage={sendMessage}
+            onSendMessage={handleSendMessage}
             isLoading={isLoading}
             isDisabled={messageLimitReached}
             placeholder="Ask a financial question..."
@@ -105,6 +117,6 @@ export function FinancialChat() {
       </div>
     </div>
   );
-}
+};
 
 export default FinancialChat;
