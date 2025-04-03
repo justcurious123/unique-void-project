@@ -1,36 +1,20 @@
 
 import React, { useState } from "react";
-import { Plus, MessageSquare, Trash2, PenSquare } from "lucide-react";
+import { Plus } from "lucide-react";
 import { 
   Sheet, 
   SheetContent, 
   SheetHeader, 
-  SheetTitle, 
-  SheetClose 
+  SheetTitle
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-  DialogFooter,
-  DialogDescription
-} from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// Define our own types instead of relying on the generated types
-export type ChatThread = {
-  id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-};
+import { ChatThread } from "@/types/chat";
+import ThreadItem from "@/components/chat/thread/ThreadItem";
+import RenameThreadDialog from "@/components/chat/thread/RenameThreadDialog";
 
 interface ChatThreadsSheetProps {
   open: boolean;
@@ -53,7 +37,6 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
 }) => {
   const { toast } = useToast();
   const [editingThread, setEditingThread] = useState<ChatThread | null>(null);
-  const [newTitle, setNewTitle] = useState("");
   const isMobile = useIsMobile();
 
   const handleDeleteThread = async (threadId: string) => {
@@ -95,7 +78,7 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
     }
   };
 
-  const handleRenameThread = async () => {
+  const handleRenameThread = async (newTitle: string) => {
     if (!editingThread || !newTitle.trim()) return;
     
     try {
@@ -112,7 +95,6 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
       });
       
       setEditingThread(null);
-      setNewTitle("");
       onThreadsUpdate();
     } catch (error) {
       toast({
@@ -122,11 +104,6 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
       });
       console.error("Error renaming thread:", error);
     }
-  };
-
-  const startEditingThread = (thread: ChatThread) => {
-    setEditingThread(thread);
-    setNewTitle(thread.title);
   };
 
   return (
@@ -154,85 +131,26 @@ const ChatThreadsSheet: React.FC<ChatThreadsSheetProps> = ({
             ) : (
               <div className="space-y-2">
                 {threads.map((thread) => (
-                  <div 
+                  <ThreadItem
                     key={thread.id}
-                    className={`group rounded-lg flex items-center cursor-pointer transition-colors ${
-                      thread.id === activeThreadId 
-                        ? "bg-blue-500 text-white" 
-                        : "hover:bg-slate-100"
-                    }`}
-                    onClick={() => onThreadSelect(thread.id)}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden p-3 flex-grow min-w-0">
-                      <MessageSquare className="h-4 w-4 shrink-0" />
-                      <span className="truncate text-sm">{thread.title}</span>
-                    </div>
-                    
-                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center ${
-                      thread.id === activeThreadId ? "text-white" : ""
-                    }`}>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-5 w-5 p-0 min-w-0 rounded-full" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEditingThread(thread);
-                        }}
-                      >
-                        <PenSquare className="h-2.5 w-2.5" />
-                        <span className="sr-only">Rename</span>
-                      </Button>
-                      
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-5 w-5 p-0 min-w-0 rounded-full mr-2" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteThread(thread.id);
-                        }}
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </div>
-                  </div>
+                    thread={thread}
+                    isActive={thread.id === activeThreadId}
+                    onSelect={onThreadSelect}
+                    onDelete={handleDeleteThread}
+                    onEdit={setEditingThread}
+                  />
                 ))}
               </div>
             )}
           </ScrollArea>
         </div>
         
-        <Dialog open={!!editingThread} onOpenChange={(open) => !open && setEditingThread(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Rename Chat Thread</DialogTitle>
-              <DialogDescription>Enter a new title for this chat thread.</DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4">
-              <Input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Enter a new title"
-                className="w-full"
-              />
-            </div>
-            
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button 
-                onClick={handleRenameThread}
-                disabled={!newTitle.trim()}
-              >
-                Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <RenameThreadDialog
+          thread={editingThread}
+          isOpen={!!editingThread}
+          onOpenChange={(open) => !open && setEditingThread(null)}
+          onRename={handleRenameThread}
+        />
       </SheetContent>
     </Sheet>
   );
