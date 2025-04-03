@@ -28,20 +28,15 @@ export function FinancialChat() {
     setIsThreadsOpen(!isThreadsOpen);
   };
   
-  const handleCreateThread = () => {
-    createThread("New Chat");
+  const handleCreateThread = async () => {
+    await createThread("New Chat");
   };
 
   const handleSendMessage = async (content: string) => {
-    // Create a thread if none exists
     if (!threadId) {
-      const newThreadId = await createThread("New Chat");
-      if (newThreadId) {
-        await sendMessage(content);
-      }
-    } else {
-      await sendMessage(content);
+      await handleCreateThread();
     }
+    await sendMessage(content);
   };
 
   return (
