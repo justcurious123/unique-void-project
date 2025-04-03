@@ -8,9 +8,18 @@ import { AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const UsageLimits: React.FC = () => {
+interface UsageLimitsProps {
+  alwaysShow?: boolean;
+}
+
+const UsageLimits: React.FC<UsageLimitsProps> = ({ alwaysShow = false }) => {
   const { usageData, isLoading } = useSubscription();
   const { goalLimitPercentage, messageLimitPercentage, goalLimitReached, messageLimitReached } = useLimits(usageData);
+  
+  // Don't show the component unless always show is true or one of the limits is reached
+  if (!alwaysShow && !goalLimitReached && !messageLimitReached) {
+    return null;
+  }
   
   if (isLoading) {
     return (

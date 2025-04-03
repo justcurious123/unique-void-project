@@ -6,6 +6,7 @@ import { useTasks } from "@/hooks/useTasks";
 import CreateGoalDialog from "./CreateGoalDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import UsageLimits from "@/components/dashboard/UsageLimits";
 
 const GoalsTab = () => {
   const navigate = useNavigate();
@@ -63,6 +64,11 @@ const GoalsTab = () => {
 
   return (
     <div className="space-y-3 sm:space-y-6">
+      {/* Usage limits will only show when limits are reached */}
+      <div className="mb-4">
+        <UsageLimits alwaysShow={false} />
+      </div>
+      
       <div className="bg-white/10 p-3 sm:p-6 rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">My Goals</h2>
