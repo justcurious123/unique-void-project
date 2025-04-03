@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, AlertCircle } from "lucide-react";
+import { MessageSquare, AlertCircle, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import ChatThreadList from "@/components/chat/ChatThreadList";
 import ChatMessageList from "@/components/chat/ChatMessageList";
@@ -27,9 +27,13 @@ export function FinancialChat() {
   const handleToggleThreads = () => {
     setIsThreadsOpen(!isThreadsOpen);
   };
+  
+  const handleCreateThread = () => {
+    createThread("New Chat");
+  };
 
   return (
-    <div className="flex flex-col h-[calc(80vh-120px)] rounded-md overflow-hidden">
+    <div className="flex flex-col h-[calc(80vh-120px)] rounded-md overflow-hidden border border-gray-200">
       <div className="bg-white shadow-sm p-4 rounded-t-md flex justify-between items-center">
         <h2 className="text-lg font-medium">Financial AI Assistant</h2>
         <button
@@ -62,11 +66,27 @@ export function FinancialChat() {
           threads={threads}
           activeThreadId={threadId}
           onSelectThread={selectThread}
-          onCreateThread={createThread}
+          onCreateThread={handleCreateThread}
           isOpen={isThreadsOpen}
         />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {!threadId && threads.length === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+              <p className="text-gray-500 mb-4 text-center">
+                You don't have any chats yet. Start a new conversation by clicking the button below
+                or typing your question in the chat box.
+              </p>
+              <Button 
+                onClick={handleCreateThread}
+                className="flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Create New Chat
+              </Button>
+            </div>
+          )}
+          
           <ChatMessageList
             messages={messages}
             currentUserId={currentUserId}
@@ -78,7 +98,7 @@ export function FinancialChat() {
           <ChatInput
             onSendMessage={sendMessage}
             isLoading={isLoading}
-            isDisabled={!threadId || messageLimitReached}
+            isDisabled={messageLimitReached}
             placeholder="Ask a financial question..."
           />
         </div>

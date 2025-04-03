@@ -1,12 +1,6 @@
 
 import React, { useRef, useEffect } from "react";
-
-interface ChatMessage {
-  id: string;
-  created_at: string;
-  sender: string;
-  content: string;
-}
+import { ChatMessage } from "@/types/chat";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -33,11 +27,19 @@ const ChatMessageList = ({
     <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
       {isLoading && <div className="text-center py-3">Loading messages...</div>}
       {error && <div className="text-red-500 text-center py-3">{error}</div>}
-      {!threadId && (
+      
+      {threadId && messages.length === 0 && !isLoading && (
+        <div className="text-gray-500 text-center py-8">
+          No messages yet. Start the conversation by typing below.
+        </div>
+      )}
+      
+      {!threadId && messages.length === 0 && (
         <div className="text-gray-500 text-center py-8">
           Select a chat or create a new one to start messaging.
         </div>
       )}
+      
       {messages.map((msg) => (
         <div
           key={msg.id}

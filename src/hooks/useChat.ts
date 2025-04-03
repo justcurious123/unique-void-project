@@ -4,20 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useLimits } from "@/hooks/useLimits";
 import { useSubscription } from "@/hooks/useSubscription";
-
-export interface ChatMessage {
-  id: string;
-  created_at: string;
-  sender: string;
-  content: string;
-  thread_id: string;
-}
-
-export interface ChatThread {
-  id: string;
-  created_at: string;
-  title: string;
-}
+import { ChatMessage, ChatThread } from "@/types/chat";
 
 export const useChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -149,9 +136,8 @@ export const useChat = () => {
   };
 
   const createThread = async (title?: string) => {
-    const threadTitle = title || prompt("Enter a title for the new chat:") || "New Chat";
-    if (!threadTitle) return;
-
+    const threadTitle = title || "New Chat";
+    
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user?.id) {
@@ -160,7 +146,7 @@ export const useChat = () => {
           description: "Please login to create a chat",
           variant: "destructive",
         });
-        return;
+        return null;
       }
 
       const { data, error } = await supabase
@@ -176,7 +162,7 @@ export const useChat = () => {
           description: error.message,
           variant: "destructive",
         });
-        return;
+        return null;
       }
       
       await fetchThreads(); // Refresh the threads list
@@ -195,11 +181,18 @@ export const useChat = () => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+      return null;
     }
   };
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || !threadId) return;
+    if (!content.trim()) return;
+    
+    // If no thread exists, create one first
+    if (!threadId) {
+      const newThreadId = await createThread();
+      if (!newThreadId) return; // Failed to create thread
+    }
     
     if (messageLimitReached) {
       toast({
