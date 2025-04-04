@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { ChatMessage } from "@/types/chat";
-import { Spinner } from "@/components/ui/spinner";
+import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface ChatMessageListProps {
@@ -11,6 +11,27 @@ interface ChatMessageListProps {
   threadId: string | null;
   error: string | null;
 }
+
+// Create a simple Spinner component
+const Spinner = () => (
+  <Loader2 className="h-4 w-4 animate-spin" />
+);
+
+// This helper function properly formats AI messages by removing markdown characters
+const formatAIMessage = (content: string) => {
+  if (!content) return "";
+  
+  // Remove markdown heading characters
+  let formattedText = content.replace(/#{1,6}\s+(.+?)(?:\r\n|\n|$)/g, '$1\n');
+  
+  // Replace bold markers
+  formattedText = formattedText.replace(/\*\*(.+?)\*\*/g, '$1');
+  
+  // Replace italic markers
+  formattedText = formattedText.replace(/\*(.+?)\*/g, '$1');
+  
+  return formattedText;
+};
 
 const ChatMessageList = ({
   messages,
@@ -74,7 +95,7 @@ const ChatMessageList = ({
               }`}
             >
               {msg.sender === "ai" ? (
-                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                <div className="text-sm whitespace-pre-wrap">{formatAIMessage(msg.content)}</div>
               ) : (
                 <div className="text-sm">{msg.content}</div>
               )}

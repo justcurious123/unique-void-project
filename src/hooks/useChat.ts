@@ -6,6 +6,22 @@ import { useLimits } from "@/hooks/useLimits";
 import { useSubscription } from "@/hooks/useSubscription";
 import { ChatMessage, ChatThread } from "@/types/chat";
 
+// Helper function to extract a title from the AI response
+const extractTitleFromAIResponse = (aiResponse: string): string => {
+  // Use the first line or sentence as the title, limiting to 30 characters
+  let title = aiResponse.split(/[.!?]|\n/)[0].trim();
+  
+  // Remove any markdown formatting
+  title = title.replace(/[#*]/g, '');
+  
+  // Limit title length
+  if (title.length > 30) {
+    title = title.substring(0, 27) + '...';
+  }
+  
+  return title || "New Chat";
+};
+
 export const useChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -54,6 +70,12 @@ export const useChat = () => {
         (payload: any) => {
           if (payload.new && payload.new.thread_id === threadId) {
             setMessages((prevMessages) => [...prevMessages, payload.new as ChatMessage]);
+            
+            // If this is an AI response and there's only one user message before it,
+            // update the thread title based on the AI response
+            if (payload.new.sender === "ai") {
+              checkAndUpdateThreadTitle(payload.new);
+            }
           }
         }
       )
@@ -63,6 +85,52 @@ export const useChat = () => {
       messageSubscription.unsubscribe();
     };
   }, [threadId]);
+  
+  // Function to check and update thread title based on AI response
+  const checkAndUpdateThreadTitle = async (aiMessage: ChatMessage) => {
+    if (!threadId) return;
+    
+    try {
+      // Get all messages in the thread to see if this is the first AI response
+      const { data: threadMessages, error } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("thread_id", threadId)
+        .order("created_at", { ascending: true });
+      
+      if (error) throw error;
+      
+      // Find the current thread
+      const { data: currentThread } = await supabase
+        .from("chat_threads")
+        .select("*")
+        .eq("id", threadId)
+        .single();
+      
+      // Check if this thread title is "New Chat" and this is the first AI response
+      if (
+        currentThread?.title === "New Chat" && 
+        threadMessages?.filter(msg => msg.sender === "ai").length === 1
+      ) {
+        const newTitle = extractTitleFromAIResponse(aiMessage.content);
+        
+        // Update the thread title
+        await supabase
+          .from("chat_threads")
+          .update({ title: newTitle })
+          .eq("id", threadId);
+          
+        // Update local state  
+        setThreads(prevThreads => 
+          prevThreads.map(thread => 
+            thread.id === threadId ? { ...thread, title: newTitle } : thread
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error updating thread title:", err);
+    }
+  };
 
   const fetchThreads = async () => {
     try {
