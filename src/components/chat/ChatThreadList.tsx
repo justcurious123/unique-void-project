@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatThread } from "@/types/chat";
 
@@ -25,14 +25,7 @@ const ChatThreadList = ({
   return (
     <div className="w-64 h-full border-r border-gray-200 bg-white p-4 flex flex-col">
       <h3 className="text-lg font-semibold mb-4">Your Chats</h3>
-      <Button 
-        onClick={onCreateThread} 
-        className="mb-4 w-full flex items-center gap-2"
-      >
-        <Plus size={16} />
-        <span>New Chat</span>
-      </Button>
-
+      
       <ScrollArea className="flex-1">
         <div className="flex flex-col space-y-2">
           {threads.length === 0 ? (

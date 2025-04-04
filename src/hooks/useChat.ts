@@ -248,24 +248,26 @@ export const useChat = () => {
       
       // Generate AI response
       try {
-        // Call OpenAI to generate a response
+        // Call the financial-advice edge function
         const { data: aiResponse, error: aiError } = await supabase.functions.invoke('financial-advice', {
-          body: { question: content, threadId: threadIdToUse }
+          body: { message: content, threadId: threadIdToUse }
         });
         
         if (aiError) throw aiError;
         
-        // Save AI response to the database
-        if (aiResponse?.answer) {
+        // Save AI response to the database - FIX: using text property instead of answer
+        if (aiResponse?.text) {
           await supabase
             .from("chat_messages")
             .insert([
               {
                 thread_id: threadIdToUse,
                 sender: "ai",
-                content: aiResponse.answer,
+                content: aiResponse.text,
               },
             ]);
+        } else {
+          console.error("No AI response text received:", aiResponse);
         }
         
       } catch (aiError: any) {
