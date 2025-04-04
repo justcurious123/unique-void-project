@@ -6,12 +6,19 @@ import { useTasks } from "@/hooks/useTasks";
 import CreateGoalDialog from "./CreateGoalDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import UsageLimits from "@/components/dashboard/UsageLimits";
+import { useLimits } from "@/hooks/useLimits";
+import { useSubscription } from "@/hooks/useSubscription";
+import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const GoalsTab = () => {
   const navigate = useNavigate();
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [goalTasksCache, setGoalTasksCache] = useState<Record<string, any[]>>({});
+  
+  const { usageData } = useSubscription();
+  const { goalLimitReached } = useLimits(usageData);
   
   const {
     goals,
@@ -64,10 +71,21 @@ const GoalsTab = () => {
 
   return (
     <div className="space-y-3 sm:space-y-6">
-      {/* Usage limits will only show when limits are reached */}
-      <div className="mb-4">
-        <UsageLimits alwaysShow={false} />
-      </div>
+      {goalLimitReached && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start">
+          <AlertCircle className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm text-amber-800">
+              You've reached your goal creation limit on your current plan.
+            </p>
+            <Link to="/pricing">
+              <Button size="sm" variant="outline" className="text-xs h-8">
+                Upgrade Plan
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
       
       <div className="bg-white/10 p-3 sm:p-6 rounded-lg">
         <div className="flex justify-between items-center mb-4">
