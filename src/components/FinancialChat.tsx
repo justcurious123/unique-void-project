@@ -34,7 +34,7 @@ export function FinancialChat() {
   };
   return <div className="flex flex-col h-[calc(80vh-120px)] rounded-md overflow-hidden border border-gray-200">
       <div className="bg-white shadow-sm p-4 rounded-t-md flex justify-between items-center">
-        <h2 className="text-lg font-medium">Financial AI Assistant</h2>
+        <h2 className="text-lg font-medium">Your Assistant</h2>
         <button onClick={handleToggleThreads} className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
           <MessageSquare size={16} />
           <span>History</span>
