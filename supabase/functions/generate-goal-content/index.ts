@@ -120,52 +120,86 @@ serve(async (req) => {
       throw new Error('No function call arguments found in tasks response')
     }
 
-    // Generate quiz for each task
+    // Generate quiz for each task with retry logic
     console.log('Generating quizzes for tasks')
     const quizzes = await Promise.all(tasks.map(async (task, index) => {
-      const quizResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-5-mini-2025-08-07',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are creating an educational quiz based on financial concepts. Generate questions that test understanding of key concepts.'
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          const quizResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIApiKey}`,
+              'Content-Type': 'application/json'
             },
-            {
-              role: 'user',
-              content: `Create a quiz with 3 questions based on this content:\n${task.article_content}`
-            }
-          ],
-          functions: [generateQuizFunction],
-          function_call: { name: 'generate_quiz' },
-          max_completion_tokens: 1000
-        })
-      })
+            body: JSON.stringify({
+              model: 'gpt-5-mini-2025-08-07',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are creating an educational quiz based on financial concepts. Generate questions that test understanding of key concepts. Keep responses concise and focused.'
+                },
+                {
+                  role: 'user',
+                  content: `Create a quiz with 3 questions based on this content:\n${task.article_content.substring(0, 800)}...`
+                }
+              ],
+              functions: [generateQuizFunction],
+              function_call: { name: 'generate_quiz' },
+              max_completion_tokens: 1500
+            })
+          })
 
-      const quizData = await quizResponse.json()
-      console.log(`Quiz response for task ${index}:`, JSON.stringify(quizData, null, 2))
-      
-      if (!quizData.choices || !quizData.choices[0]) {
-        throw new Error(`Invalid response from OpenAI API for quiz ${index}`)
-      }
-      
-      let quizContent;
-      if (quizData.choices[0].message.function_call?.arguments) {
-        quizContent = JSON.parse(quizData.choices[0].message.function_call.arguments)
-      } else if (quizData.choices[0].message.tool_calls?.[0]?.function?.arguments) {
-        quizContent = JSON.parse(quizData.choices[0].message.tool_calls[0].function.arguments)
-      } else {
-        throw new Error(`No function call arguments found in quiz response ${index}`)
-      }
-      
-      return {
-        ...quizContent,
-        task_index: index
+          const quizData = await quizResponse.json()
+          console.log(`Quiz response for task ${index} (attempt ${retryCount + 1}):`, JSON.stringify(quizData, null, 2))
+          
+          if (!quizData.choices || !quizData.choices[0]) {
+            throw new Error(`Invalid response from OpenAI API for quiz ${index}`)
+          }
+          
+          let quizContent;
+          if (quizData.choices[0].message.function_call?.arguments) {
+            quizContent = JSON.parse(quizData.choices[0].message.function_call.arguments)
+          } else if (quizData.choices[0].message.tool_calls?.[0]?.function?.arguments) {
+            quizContent = JSON.parse(quizData.choices[0].message.tool_calls[0].function.arguments)
+          } else if (quizData.choices[0].finish_reason === 'length') {
+            console.log(`Quiz generation hit token limit for task ${index}, retrying with shorter input...`)
+            retryCount++;
+            continue;
+          } else {
+            throw new Error(`No function call arguments found in quiz response ${index}`)
+          }
+          
+          return {
+            ...quizContent,
+            task_index: index
+          }
+        } catch (error) {
+          console.error(`Error generating quiz for task ${index} (attempt ${retryCount + 1}):`, error)
+          if (retryCount === maxRetries) {
+            // Return a fallback quiz if all retries fail
+            console.log(`Creating fallback quiz for task ${index}`)
+            return {
+              title: `${task.title} Quiz`,
+              questions: [
+                {
+                  question: "What is the main objective of this task?",
+                  options: [
+                    "To understand financial concepts",
+                    "To spend money quickly",
+                    "To avoid planning",
+                    "To ignore financial goals"
+                  ],
+                  correct_option: 0
+                }
+              ],
+              task_index: index
+            }
+          }
+          retryCount++;
+        }
       }
     }))
 
