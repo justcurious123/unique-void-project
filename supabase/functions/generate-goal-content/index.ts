@@ -87,7 +87,7 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5-mini-2025-08-07',
         messages: [
           {
             role: 'system',
@@ -99,7 +99,8 @@ serve(async (req) => {
           }
         ],
         functions: [generateTasksFunction],
-        function_call: { name: 'generate_tasks' }
+        function_call: { name: 'generate_tasks' },
+        max_completion_tokens: 2000
       })
     })
 
@@ -116,7 +117,7 @@ serve(async (req) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-5-mini-2025-08-07',
           messages: [
             {
               role: 'system',
@@ -128,7 +129,8 @@ serve(async (req) => {
             }
           ],
           functions: [generateQuizFunction],
-          function_call: { name: 'generate_quiz' }
+          function_call: { name: 'generate_quiz' },
+          max_completion_tokens: 1000
         })
       })
 

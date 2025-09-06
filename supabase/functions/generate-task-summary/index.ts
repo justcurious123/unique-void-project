@@ -43,7 +43,7 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini-2025-08-07',
         messages: [
           {
             role: 'system',
@@ -53,7 +53,8 @@ serve(async (req) => {
             role: 'user',
             content: `Here are the tasks for a financial goal:\n${JSON.stringify(taskData, null, 2)}\n\nCreate a brief summary that captures the essence of these tasks without listing them individually.`
           }
-        ]
+        ],
+        max_completion_tokens: 100
       })
     })
 
