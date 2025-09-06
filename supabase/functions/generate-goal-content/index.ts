@@ -105,7 +105,20 @@ serve(async (req) => {
     })
 
     const tasksData = await tasksResponse.json()
-    const tasks = JSON.parse(tasksData.choices[0].message.function_call.arguments).tasks
+    console.log('Tasks response:', JSON.stringify(tasksData, null, 2))
+    
+    if (!tasksData.choices || !tasksData.choices[0]) {
+      throw new Error('Invalid response from OpenAI API for tasks')
+    }
+    
+    let tasks;
+    if (tasksData.choices[0].message.function_call?.arguments) {
+      tasks = JSON.parse(tasksData.choices[0].message.function_call.arguments).tasks
+    } else if (tasksData.choices[0].message.tool_calls?.[0]?.function?.arguments) {
+      tasks = JSON.parse(tasksData.choices[0].message.tool_calls[0].function.arguments).tasks
+    } else {
+      throw new Error('No function call arguments found in tasks response')
+    }
 
     // Generate quiz for each task
     console.log('Generating quizzes for tasks')
@@ -135,8 +148,23 @@ serve(async (req) => {
       })
 
       const quizData = await quizResponse.json()
+      console.log(`Quiz response for task ${index}:`, JSON.stringify(quizData, null, 2))
+      
+      if (!quizData.choices || !quizData.choices[0]) {
+        throw new Error(`Invalid response from OpenAI API for quiz ${index}`)
+      }
+      
+      let quizContent;
+      if (quizData.choices[0].message.function_call?.arguments) {
+        quizContent = JSON.parse(quizData.choices[0].message.function_call.arguments)
+      } else if (quizData.choices[0].message.tool_calls?.[0]?.function?.arguments) {
+        quizContent = JSON.parse(quizData.choices[0].message.tool_calls[0].function.arguments)
+      } else {
+        throw new Error(`No function call arguments found in quiz response ${index}`)
+      }
+      
       return {
-        ...JSON.parse(quizData.choices[0].message.function_call.arguments),
+        ...quizContent,
         task_index: index
       }
     }))
